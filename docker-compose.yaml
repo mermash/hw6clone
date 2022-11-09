@@ -1,0 +1,45 @@
+version: '3'
+services:
+  mysql-db:
+    image: mysql
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      # - MYSQL_USER=test_user
+      # - MYSQL_PASSWORD=secret
+      # - MYSQL_DATABASE=my_golang_app
+    ports:
+      - 3306:3306
+    volumes:
+      - redditclone-mysql-data:/var/lib/mysql
+      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql
+  phpmyadmin:
+    image: phpmyadmin
+    depends_on:
+      - mysql-db
+    restart: always
+    ports:
+      - 8090:80
+    environment:
+      - PMA_ARBITRARY=1
+  redditclone-app:
+    image: mermash/redditclone-app
+    build: .
+    # stdin_open: true
+    # tty: true
+    ports:
+      - 8080:8080
+    restart: unless-stopped
+    depends_on:
+      - mysql-db
+      - phpmyadmin
+    environment:
+      - DB_HOST=mysql-db
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=root
+      - DB_DB=redditclone
+
+volumes:
+  redditclone-mysql-data:
