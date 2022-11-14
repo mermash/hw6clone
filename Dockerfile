@@ -6,4 +6,4 @@ COPY . /home/app
 
 WORKDIR /home/app
 
-CMD go run *.go
+CMD go run main.go

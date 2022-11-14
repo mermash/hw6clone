@@ -1,5 +1,7 @@
 package main
 
+import "fmt"
+
 type AuthorDTO struct {
 	UserName string `json:"username"`
 	ID       string `json:"id"`
@@ -52,4 +54,114 @@ type CommentRequestDTO struct {
 type LoginDTO struct {
 	UserName string `json:"username"`
 	Password string `json:"password"`
+}
+
+func PostConvertToDTO(commentRepo CommentRepoI, voteRepo VoteRepoI, data *PostComplexData) (*PostDTO, error) {
+	postDTO := &PostDTO{
+		ID: data.Post.ID,
+		Author: &AuthorDTO{
+			UserName: data.User.Login,
+			ID:       data.User.ID,
+		},
+		Category:         data.Category.Name,
+		Comments:         []*CommentDTO{},
+		Created:          data.Post.Created,
+		Score:            data.Post.Score,
+		Text:             data.Post.Description,
+		Title:            data.Post.Title,
+		Type:             data.Post.Type,
+		UpVotePercentage: 0,
+		Votes:            []*VoteDTO{},
+		Views:            0,
+	}
+
+	postIds := make([]string, 0, 1)
+	postIds = append(postIds, data.Post.ID)
+	comments, err := commentRepo.GetCommentsByPostIds(postIds)
+	if nil != err {
+		return nil, err
+	}
+
+	postDTO.Comments = CommentsConvertToDTO(comments[data.Post.ID])
+
+	votes, err := voteRepo.GetVotesByPostIds(postIds)
+	if nil != err {
+		return nil, err
+	}
+	postDTO.Votes = VotesConvertToDTO(votes[data.Post.ID])
+
+	return postDTO, nil
+}
+
+func CommentsConvertToDTO(data []*CommentComplexData) []*CommentDTO {
+	commentsDTO := []*CommentDTO{}
+	for _, comment := range data {
+		commentDTO := &CommentDTO{
+			Author: &AuthorDTO{
+				UserName: comment.User.Login,
+				ID:       comment.User.ID,
+			},
+			Body:    comment.Comment.Body,
+			Created: comment.Comment.Created,
+			ID:      comment.Comment.ID,
+		}
+		commentsDTO = append(commentsDTO, commentDTO)
+	}
+	return commentsDTO
+}
+
+func VotesConvertToDTO(data []*Vote) []*VoteDTO {
+	votesDTO := []*VoteDTO{}
+	for _, vote := range data {
+		voteDTO := &VoteDTO{
+			User: vote.UserID,
+			Vote: vote.Vote,
+		}
+		votesDTO = append(votesDTO, voteDTO)
+	}
+	return votesDTO
+}
+
+func PostsConvertToDTO(commentRepo CommentRepoI, voteRepo VoteRepoI, data []*PostComplexData) ([]*PostDTO, error) {
+	postsDTO := []*PostDTO{}
+	postIds := make([]string, 0, 10)
+	for _, post := range data {
+		postIds = append(postIds, post.Post.ID)
+		postDTO := &PostDTO{
+			ID: post.Post.ID,
+			Author: &AuthorDTO{
+				UserName: post.User.Login,
+				ID:       post.User.ID,
+			},
+			Category:         post.Category.Name,
+			Comments:         []*CommentDTO{},
+			Created:          post.Created,
+			Score:            post.Score,
+			Text:             post.Description,
+			Title:            post.Title,
+			Type:             post.Type,
+			UpVotePercentage: 0,
+			Votes:            []*VoteDTO{},
+			Views:            0,
+		}
+		postsDTO = append(postsDTO, postDTO)
+	}
+	if len(postIds) > 0 {
+		comments, err := commentRepo.GetCommentsByPostIds(postIds)
+		if nil != err {
+			fmt.Println("get comments: ", err)
+			return nil, err
+		}
+		votes, err := voteRepo.GetVotesByPostIds(postIds)
+		if nil != err {
+			fmt.Println("get votes: ", err)
+			return nil, err
+		}
+		for _, post := range postsDTO {
+			post.Comments = CommentsConvertToDTO(comments[post.ID])
+			post.Votes = VotesConvertToDTO(votes[post.ID])
+		}
+	}
+
+	return postsDTO, nil
 }

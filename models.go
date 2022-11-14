@@ -35,3 +35,14 @@ type Category struct {
 	ID   uint32
 	Name string
 }
+
+type PostComplexData struct {
+	Post
+	User
+	Category
+}
+
+type CommentComplexData struct {
+	Comment
+	User
+}

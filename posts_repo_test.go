@@ -6,10 +6,9 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	sqlmock "gopkg.in/DATA-DOG/go-sqlmock"
 )
 
-func TestPostsGetAllEmpty(t *testing.T) {
+func TestPostsGetAllSuccessed(t *testing.T) {
 
 	db, mock, err := sqlmock.New()
 	if err != nil {
@@ -18,45 +17,141 @@ func TestPostsGetAllEmpty(t *testing.T) {
 	defer db.Close()
 
 	rows := sqlmock.
-		NewRows([]string{"id", "title", "type", "description", "score", "user_id", "category_id", "created"})
+		NewRows([]string{
+			"post_id", "title", "type",
+			"description", "score", "user_id",
+			"category_id", "post_created",
+			"user_user_id", "login",
+			"category_name",
+		})
+
+	expect := []*PostComplexData{
+		{
+			Post: Post{
+				ID:          "dc1e2f25-76a5-4aac-9212-96e2121c16f1",
+				Title:       "test fashion",
+				Type:        "text",
+				Description: "test fashion",
+				Score:       1,
+				UserID:      "522cd619-841f-43d5-866d-f880e5f48d18",
+				CategoryID:  1,
+				Created:     "2022-11-09T19:51:42Z",
+			},
+			User: User{
+				ID:    "522cd619-841f-43d5-866d-f880e5f48d18",
+				Login: "mer",
+			},
+			Category: Category{
+				Name: "fashion",
+			}},
+	}
+
+	for _, post := range expect {
+		rows = rows.AddRow(post.Post.ID, post.Post.Title,
+			post.Post.Type, post.Post.Description, post.Post.Score,
+			post.Post.UserID, post.Post.CategoryID, post.Post.Created, post.User.ID, post.User.Login,
+			post.Category.Name)
+	}
 
 	mock.
-		ExpectQuery("SELECT id, title, type, description, score, user_id, category_id, created").
+		ExpectQuery(`
+		SELECT 
+		post.id AS post_id, title, type, description, score, user_id, category_id, post.created AS post_created,
+		user.id AS user_id, user.login,
+		category.name AS category_name
+		FROM post
+		LEFT JOIN user ON user.id = post.user_id
+		LEFT JOIN category ON category.id = post.category_id
+		ORDER BY post.created DESC`).
 		WillReturnRows(rows)
 
 	postsRepo := NewPostsRepo(db)
 	posts, err := postsRepo.GetAll()
 
-	if len(posts) > 0 {
-		t.Errorf("posts must be empty. get: %s", posts)
-	}
-
 	if nil != err {
 		t.Errorf("unexpected error: %s", err)
 	}
-}
 
-func TestPostsGetAllIsNotEmpty(t *testing.T) {
+	if !reflect.DeepEqual(posts, expect) {
+		t.Errorf("results not match. want %#v; have: %#v", expect, posts)
+		return
+	}
 
-	postsRepo := NewPostsRepo()
-	posts, err := postsRepo.GetAll()
-
-	if len(posts) == 0 || posts == nil || err != nil {
-		t.Fatalf("Posts must not be empty. Get value %#v and err %#v", posts, err)
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were an unfulfilled expectations: %s", err)
 	}
 }
 
-func TestPostsGetAllError(t *testing.T) {
+func TestPostsGetAllQueryError(t *testing.T) {
 
-	postsRepo := NewPostsRepo()
-	posts, err := postsRepo.GetAll()
-
+	db, mock, err := sqlmock.New()
 	if err != nil {
-		t.Fatalf("Must get error. Get value %#v and err %#v", posts, err)
+		t.Fatalf("an error %s was not expected when open stub connetcion", err)
+	}
+	defer db.Close()
+
+	mock.ExpectQuery(
+		`SELECT
+		post.id AS post_id, title, type, description, score, user_id, category_id, post.created AS post_created,
+		user.id AS user_id, user.login,
+		category.name AS category_name
+		FROM post
+		LEFT JOIN user ON user.id = post.user_id
+		LEFT JOIN category ON category.id = post.category_id
+		ORDER BY post.created DESC`).
+		WillReturnError(fmt.Errorf("db_error"))
+
+	postsRepo := NewPostsRepo(db)
+	_, err = postsRepo.GetAll()
+
+	if err == nil {
+		t.Error("expected error, got nil")
+		return
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were an unfulfilled expectations")
 	}
 }
 
-func TestPostsGetByIdError(t *testing.T) {
+func TestPostsGetAllScanError(t *testing.T) {
+
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error %s was not expected when open stub connetcion", err)
+	}
+	defer db.Close()
+
+	rows := sqlmock.
+		NewRows([]string{
+			"post_id", "title", "type",
+		}).AddRow("dc1e2f25-76a5-4aac-9212-96e2121c16f1", "test fashion", "text")
+
+	mock.ExpectQuery(
+		`SELECT
+		post.id AS post_id, title, type, description, score, user_id, category_id, post.created AS post_created,
+		user.id AS user_id, user.login,
+		category.name AS category_name
+		FROM post
+		LEFT JOIN user ON user.id = post.user_id
+		LEFT JOIN category ON category.id = post.category_id
+		ORDER BY post.created DESC`).
+		WillReturnRows(rows)
+
+	postsRepo := NewPostsRepo(db)
+	_, err = postsRepo.GetAll()
+
+	if err == nil {
+		t.Error("expected error, got nil")
+		return
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were an unfulfilled expectations: %s", err)
+	}
+}
+
+func TestPostsGetByIdQueryError(t *testing.T) {
 
 	db, mock, err := sqlmock.New()
 	if err != nil {
@@ -65,16 +160,25 @@ func TestPostsGetByIdError(t *testing.T) {
 	defer db.Close()
 
 	postsRepo := NewPostsRepo(db)
-	id := "123"
+	id := "dc1e2f25-76a5-4aac-9212-96e2121c16f1"
 
 	mock.
-		ExpectQuery("SELECT id, title, type, description, score, user_id, category_id, created WHERE").
+		ExpectQuery(
+			`
+		SELECT 
+	post.id AS post_id, title, type, description, 
+	score, user_id, category_id, post.created AS post_created,
+	user.id AS user_user_id, user.login,
+	category.name AS category_name
+	FROM post 
+	LEFT JOIN user ON user.id = post.user_id
+	LEFT JOIN category ON category.id = post.category_id WHERE post.id =`).
 		WithArgs(id).
 		WillReturnError(fmt.Errorf("db_error"))
 
-	_, err = postsRepo.GetById(&id)
+	_, err = postsRepo.GetById(id)
 
-	if err = mock.ExpectationsWereMet(); nil != err {
+	if err := mock.ExpectationsWereMet(); nil != err {
 		t.Errorf("there were unfulfilled expectations: %s", err)
 	}
 
@@ -83,7 +187,7 @@ func TestPostsGetByIdError(t *testing.T) {
 	}
 }
 
-func TestPostsGetByIdIsNotEmpty(t *testing.T) {
+func TestPostsGetByIdSuccessed(t *testing.T) {
 
 	db, mock, err := sqlmock.New()
 	if err != nil {
@@ -92,25 +196,58 @@ func TestPostsGetByIdIsNotEmpty(t *testing.T) {
 	defer db.Close()
 
 	postsRepo := NewPostsRepo(db)
-	id := "123"
+	id := "dc1e2f25-76a5-4aac-9212-96e2121c16f1"
 
 	rows := sqlmock.
-		NewRows([]string{"id", "title", "type", "description", "score", "user_id", "category_id", "created"})
+		NewRows([]string{
+			"post_id", "title", "type",
+			"description", "score", "user_id",
+			"category_id", "post_created",
+			"user_user_id", "login",
+			"category_name"})
 
-	expect := []*Post{
-		{"123", "test", "music", "description", 1, "123", 2, "2022-10-19 23:00:00"},
+	expect := []*PostComplexData{
+		{
+			Post: Post{
+				ID:          "dc1e2f25-76a5-4aac-9212-96e2121c16f1",
+				Title:       "test fashion",
+				Type:        "text",
+				Description: "test fashion",
+				Score:       1,
+				UserID:      "522cd619-841f-43d5-866d-f880e5f48d18",
+				CategoryID:  1,
+				Created:     "2022-11-09T19:51:42Z",
+			},
+			User: User{
+				ID:    "522cd619-841f-43d5-866d-f880e5f48d18",
+				Login: "mer",
+			},
+			Category: Category{
+				Name: "fashion",
+			}},
 	}
 
 	for _, post := range expect {
-		rows = rows.AddRow(post.ID, post.Title, post.Type, post.Description, post.Score, post.UserID, post.CategoryID, post.Created)
+		rows = rows.AddRow(post.Post.ID, post.Post.Title,
+			post.Post.Type, post.Post.Description, post.Post.Score,
+			post.Post.UserID, post.Post.CategoryID, post.Post.Created, post.User.ID, post.User.Login,
+			post.Category.Name)
 	}
 
 	mock.
-		ExpectQuery("SELECT id, title, type, description, score, user_id, category_id, created").
+		ExpectQuery(`
+		SELECT 
+	post.id AS post_id, title, type, description, 
+	score, user_id, category_id, post.created AS post_created,
+	user.id AS user_user_id, user.login,
+	category.name AS category_name
+	FROM post 
+	LEFT JOIN user ON user.id = post.user_id
+	LEFT JOIN category ON category.id = post.category_id WHERE post.id =`).
 		WithArgs(id).
 		WillReturnRows(rows)
 
-	post, err := postsRepo.GetById(&id)
+	post, err := postsRepo.GetById(id)
 
 	if nil != err {
 		t.Errorf("unexpected error: %s", err)
@@ -127,7 +264,7 @@ func TestPostsGetByIdIsNotEmpty(t *testing.T) {
 	}
 }
 
-func TestPostsGetByIdEmpty(t *testing.T) {
+func TestPostsGetByIdScanError(t *testing.T) {
 
 	db, mock, err := sqlmock.New()
 	if err != nil {
@@ -136,11 +273,35 @@ func TestPostsGetByIdEmpty(t *testing.T) {
 	defer db.Close()
 
 	postsRepo := NewPostsRepo(db)
-	id := "123"
-	post, err := postsRepo.GetById(&id)
+	id := "dc1e2f25-76a5-4aac-9212-96e2121c16f1"
 
-	if post != nil && err == nil {
-		t.Fatalf("Posts must be empty. Get value %#v and err %#v", post, err)
+	rows := sqlmock.
+		NewRows([]string{"post_id", "title", "type"}).
+		AddRow("dc1e2f25-76a5-4aac-9212-96e2121c16f1", "test fashion", "text")
+
+	mock.
+		ExpectQuery(`
+		SELECT 
+	post.id AS post_id, title, type, description, 
+	score, user_id, category_id, post.created AS post_created,
+	user.id AS user_user_id, user.login,
+	category.name AS category_name
+	FROM post 
+	LEFT JOIN user ON user.id = post.user_id
+	LEFT JOIN category ON category.id = post.category_id WHERE post.id =`).
+		WithArgs(id).
+		WillReturnRows(rows)
+
+	_, err = postsRepo.GetById(id)
+
+	if err := mock.ExpectationsWereMet(); nil != err {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+		return
+	}
+
+	if err == nil {
+		t.Errorf("expected error, got nil")
+		return
 	}
 }
 
@@ -153,18 +314,37 @@ func TestPostsAddSuccessed(t *testing.T) {
 
 	postsRepo := NewPostsRepo(db)
 	post := &Post{
+		ID:          "dc1e2f25-76a5-4aac-9212-96e2121c16f1",
+		Title:       "test",
+		Type:        "text",
 		Description: "test",
-		Created:     "2022-10-18",
-		UserID:      "1",
+		Score:       1,
+		Created:     "2022-11-09T19:51:42Z",
+		UserID:      "522cd619-841f-43d5-866d-f880e5f48d18",
+		CategoryID:  1,
 	}
+
+	mock.
+		ExpectExec(`INSERT INTO post`).
+		WithArgs(post.ID, post.Title, post.Type, post.Description, post.Score, post.UserID, post.CategoryID, post.Created).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
 	postId, err := postsRepo.Add(post)
 
-	if postId == nil || err != nil {
-		t.Fatalf("Must be to add successed. Get value %#v and err %#v", postId, err)
+	if err != nil {
+		t.Errorf("unexpected error: %s", err)
+		return
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+
+	if postId != &post.ID {
+		t.Errorf("expected lastId: %s", post.ID)
 	}
 }
 
-func TestPostsAddError(t *testing.T) {
+func TestPostsAddQueryError(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
@@ -173,23 +353,33 @@ func TestPostsAddError(t *testing.T) {
 
 	postsRepo := NewPostsRepo(db)
 	post := &Post{
-		ID:          "123",
+		ID:          "dc1e2f25-76a5-4aac-9212-96e2121c16f1",
 		Title:       "test",
 		Type:        "text",
 		Description: "test",
 		Score:       1,
-		UserID:      "123",
+		Created:     "2022-11-09T19:51:42Z",
+		UserID:      "522cd619-841f-43d5-866d-f880e5f48d18",
 		CategoryID:  1,
-		Created:     "2022-10-19",
 	}
-	postId, err := postsRepo.Add(post)
 
-	if postId != nil || err == nil {
-		t.Fatalf("Must be to get error. Get value %#v and err %#v", postId, err)
+	mock.
+		ExpectExec(`INSERT INTO post`).
+		WithArgs(post.ID, post.Title, post.Type, post.Description, post.Score, post.UserID, post.CategoryID, post.Created).
+		WillReturnError(fmt.Errorf("bad query"))
+
+	_, err = postsRepo.Add(post)
+
+	if err == nil {
+		t.Errorf("expected error got nil")
+		return
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
 	}
 }
 
-func TestPostsUpdateSuccessed(t *testing.T) {
+func TestPostsAddResultError(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
@@ -198,44 +388,29 @@ func TestPostsUpdateSuccessed(t *testing.T) {
 
 	postsRepo := NewPostsRepo(db)
 	post := &Post{
-		ID:          "123",
+		ID:          "dc1e2f25-76a5-4aac-9212-96e2121c16f1",
 		Title:       "test",
 		Type:        "text",
 		Description: "test",
 		Score:       1,
-		UserID:      "123",
+		Created:     "2022-11-09T19:51:42Z",
+		UserID:      "522cd619-841f-43d5-866d-f880e5f48d18",
 		CategoryID:  1,
-		Created:     "2022-10-19",
 	}
-	isUpdated, err := postsRepo.Update(post)
 
-	if isUpdated == false || err != nil {
-		t.Fatalf("Must be to update successed. Get value %#v and err %#v", isUpdated, err)
+	mock.
+		ExpectExec(`INSERT INTO post`).
+		WithArgs(post.ID, post.Title, post.Type, post.Description, post.Score, post.UserID, post.CategoryID, post.Created).
+		WillReturnResult(sqlmock.NewErrorResult(fmt.Errorf("bad_result")))
+
+	_, err = postsRepo.Add(post)
+
+	if err == nil {
+		t.Errorf("expected error got nil")
+		return
 	}
-}
-
-func TestPostsUpdateError(t *testing.T) {
-	db, mock, err := sqlmock.New()
-	if err != nil {
-		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
-	}
-	defer db.Close()
-
-	postsRepo := NewPostsRepo(db)
-	post := &Post{
-		ID:          "123",
-		Title:       "test",
-		Type:        "text",
-		Description: "test",
-		Score:       1,
-		UserID:      "123",
-		CategoryID:  1,
-		Created:     "2022-10-19",
-	}
-	isUpdated, err := postsRepo.Update(post)
-
-	if true == isUpdated && nil != err {
-		t.Fatalf("Must be to update with error. Get value %#v and err %#v", isUpdated, err)
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
 	}
 }
 
@@ -247,15 +422,29 @@ func TestPostsDeleteSuccessed(t *testing.T) {
 	defer db.Close()
 
 	postsRepo := NewPostsRepo(db)
-	id := "123"
-	isDeleted, err := postsRepo.Delete(id)
+	postId := "dc1e2f25-76a5-4aac-9212-96e2121c16f1"
 
-	if false == isDeleted && nil != err {
-		t.Fatalf("Must be to delete successed. Get value %#v and err %#v", isDeleted, err)
+	mock.
+		ExpectExec(`DELETE FROM post`).
+		WithArgs(postId).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	result, err := postsRepo.Delete(postId)
+
+	if err != nil {
+		t.Errorf("unexpected error: %s", err)
+		return
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+
+	if !result {
+		t.Errorf("expected true")
 	}
 }
 
-func TestPostsDeleteError(t *testing.T) {
+func TestPostsDeleteQueryError(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
@@ -263,10 +452,576 @@ func TestPostsDeleteError(t *testing.T) {
 	defer db.Close()
 
 	postsRepo := NewPostsRepo(db)
-	id := "123"
-	isDeleted, err := postsRepo.Delete(id)
+	postId := "dc1e2f25-76a5-4aac-9212-96e2121c16f1"
 
-	if true == isDeleted && nil == err {
-		t.Fatalf("Nust be to delete with error. Get value %#v and err %#v", isDeleted, err)
+	//query error
+	mock.
+		ExpectExec(`DELETE FROM post`).
+		WithArgs(postId).
+		WillReturnError(fmt.Errorf("bad_query"))
+
+	_, err = postsRepo.Delete(postId)
+
+	if err == nil {
+		t.Errorf("expected error, got nil")
+		return
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
+func TestPostsDeleteResultError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	postsRepo := NewPostsRepo(db)
+	postId := "dc1e2f25-76a5-4aac-9212-96e2121c16f1"
+
+	mock.
+		ExpectExec(`DELETE FROM post`).
+		WithArgs(postId).
+		WillReturnResult(sqlmock.NewErrorResult(fmt.Errorf("bad_result")))
+
+	_, err = postsRepo.Delete(postId)
+
+	if err == nil {
+		t.Errorf("expected error, got nil")
+		return
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
+func TestPostsDeleteRowsAffectedError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	postsRepo := NewPostsRepo(db)
+	postId := "dc1e2f25-76a5-4aac-9212-96e2121c16f1"
+
+	mock.
+		ExpectExec(`DELETE FROM post`).
+		WithArgs(postId).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+
+	_, err = postsRepo.Delete(postId)
+
+	if err == nil {
+		t.Errorf("expected error, got nil")
+		return
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
+func TestPostsUpVoteSuccessed(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connetcion", err)
+	}
+	defer db.Close()
+
+	postsRepo := NewPostsRepo(db)
+	postId := "dc1e2f25-76a5-4aac-9212-96e2121c16f1"
+
+	mock.
+		ExpectExec("UPDATE post SET").
+		WithArgs(postId).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	result, err := postsRepo.UpVote(postId)
+
+	if err != nil {
+		t.Errorf("unexpected error: %s", err)
+		return
+	}
+
+	if !result {
+		t.Errorf("expected true")
+		return
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
+func TestPostsUpVoteQueryError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	postsRepo := NewPostsRepo(db)
+	postId := "dc1e2f25-76a5-4aac-9212-96e2121c16f1"
+
+	mock.
+		ExpectExec(`UPDATE post SET`).
+		WithArgs(postId).
+		WillReturnError(fmt.Errorf("bad_query"))
+
+	_, err = postsRepo.UpVote(postId)
+
+	if err == nil {
+		t.Errorf("expected error, got nil")
+		return
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
+func TestPostsUpVoteResultError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	postsRepo := NewPostsRepo(db)
+	postId := "dc1e2f25-76a5-4aac-9212-96e2121c16f1"
+
+	mock.
+		ExpectExec(`UPDATE post SET`).
+		WithArgs(postId).
+		WillReturnResult(sqlmock.NewErrorResult(fmt.Errorf("bad result")))
+
+	_, err = postsRepo.UpVote(postId)
+
+	if err == nil {
+		t.Error("expected error, got nil")
+		return
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
+func TestPostsUpVoteRowsAffectedError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	postsRepo := NewPostsRepo(db)
+	postId := "dc1e2f25-76a5-4aac-9212-96e2121c16f1"
+
+	mock.
+		ExpectExec(`UPDATE post SET`).
+		WithArgs(postId).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+
+	_, err = postsRepo.UpVote(postId)
+
+	if err == nil {
+		t.Error("expected error, got nil")
+		return
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
+func TestPostsDownVoteSuccessed(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	postsRepo := NewPostsRepo(db)
+	postId := "dc1e2f25-76a5-4aac-9212-96e2121c16f1"
+
+	mock.
+		ExpectExec(`UPDATE post SET`).
+		WithArgs(postId).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	result, err := postsRepo.DownVote(postId)
+
+	if !result {
+		t.Errorf("expected true")
+		return
+	}
+
+	if err != nil {
+		t.Errorf("expected result, got error %s", err)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
+func TestPostsDownVoteQueryError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	postsRepo := NewPostsRepo(db)
+	postId := "dc1e2f25-76a5-4aac-9212-96e2121c16f1"
+
+	mock.
+		ExpectExec(`UPDATE post SET`).
+		WithArgs(postId).
+		WillReturnError(fmt.Errorf("bad_query"))
+
+	_, err = postsRepo.DownVote(postId)
+
+	if err == nil {
+		t.Errorf("expected error, got nil")
+		return
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
+func TestPostsDownVoteResultError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	postsRepo := NewPostsRepo(db)
+	postId := "dc1e2f25-76a5-4aac-9212-96e2121c16f1"
+
+	mock.
+		ExpectExec(`UPDATE post SET`).
+		WithArgs(postId).
+		WillReturnResult(sqlmock.NewErrorResult(fmt.Errorf("bad result")))
+
+	_, err = postsRepo.DownVote(postId)
+
+	if err == nil {
+		t.Error("expected error, got nil")
+		return
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
+func TestPostsGetByCategoryNameSuccessed(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	postsRepo := NewPostsRepo(db)
+	categoryName := "fashion"
+
+	rows := sqlmock.
+		NewRows([]string{
+			"post_id", "title", "type",
+			"description", "score", "user_id",
+			"category_id", "post_created",
+			"user_user_id", "login",
+			"category_name"})
+
+	expect := []*PostComplexData{
+		{
+			Post: Post{
+				ID:          "dc1e2f25-76a5-4aac-9212-96e2121c16f1",
+				Title:       "test fashion",
+				Type:        "text",
+				Description: "test fashion",
+				Score:       1,
+				UserID:      "522cd619-841f-43d5-866d-f880e5f48d18",
+				CategoryID:  1,
+				Created:     "2022-11-09T19:51:42Z",
+			},
+			User: User{
+				ID:    "522cd619-841f-43d5-866d-f880e5f48d18",
+				Login: "mer",
+			},
+			Category: Category{
+				Name: "fashion",
+			}},
+	}
+
+	for _, post := range expect {
+		rows = rows.AddRow(post.Post.ID, post.Post.Title,
+			post.Post.Type, post.Post.Description, post.Post.Score,
+			post.Post.UserID, post.Post.CategoryID, post.Post.Created, post.User.ID, post.User.Login,
+			post.Category.Name)
+	}
+
+	mock.
+		ExpectQuery(`		SELECT
+		post.id AS post_id, title, type, description, 
+		score, user_id, category_id, post.created AS post_created,
+		user.id AS user_id, user.login,
+		category.name AS category_name
+		FROM post 
+		LEFT JOIN user ON user.id = post.user_id
+		LEFT JOIN category ON category.id = post.category_id
+		WHERE category.name = `).
+		WithArgs(categoryName).
+		WillReturnRows(rows)
+
+	posts, err := postsRepo.GetByCategoryName(categoryName)
+
+	if err != nil {
+		t.Errorf("unexpected error: %s", err)
+		return
+	}
+
+	if !reflect.DeepEqual(posts, expect) {
+		t.Errorf("results are not matched; want: %#v; have: %#v", expect, posts)
+		return
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were an unfulfilled expectations %s", err)
+	}
+}
+
+func TestPostsGetByCategoryNameScanError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	postsRepo := NewPostsRepo(db)
+	categoryName := "fashion"
+
+	rows := sqlmock.
+		NewRows([]string{
+			"post_id", "title", "type"}).
+		AddRow("dc1e2f25-76a5-4aac-9212-96e2121c16f1", "test fashion", "text")
+
+	mock.
+		ExpectQuery(`		SELECT
+		post.id AS post_id, title, type, description, 
+		score, user_id, category_id, post.created AS post_created,
+		user.id AS user_id, user.login,
+		category.name AS category_name
+		FROM post 
+		LEFT JOIN user ON user.id = post.user_id
+		LEFT JOIN category ON category.id = post.category_id
+		WHERE category.name = `).
+		WithArgs(categoryName).
+		WillReturnRows(rows)
+
+	_, err = postsRepo.GetByCategoryName(categoryName)
+
+	if err == nil {
+		t.Error("expected error, got nil")
+		return
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were an unfulfilled expectations %s", err)
+	}
+}
+
+func TestPostsGetByCategoryNameQueryError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	postsRepo := NewPostsRepo(db)
+	categoryName := "fashion"
+
+	mock.
+		ExpectQuery(`		SELECT
+		post.id AS post_id, title, type, description, 
+		score, user_id, category_id, post.created AS post_created,
+		user.id AS user_id, user.login,
+		category.name AS category_name
+		FROM post 
+		LEFT JOIN user ON user.id = post.user_id
+		LEFT JOIN category ON category.id = post.category_id
+		WHERE category.name = `).
+		WithArgs(categoryName).
+		WillReturnError(fmt.Errorf("db_error"))
+
+	_, err = postsRepo.GetByCategoryName(categoryName)
+
+	if err == nil {
+		t.Error("expected error, got nil")
+		return
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were an unfulfilled expectations %s", err)
+	}
+}
+
+func TestPostsGetByLoginSuccessed(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	postsRepo := NewPostsRepo(db)
+	login := "test"
+
+	rows := sqlmock.
+		NewRows([]string{
+			"post_id", "title", "type",
+			"description", "score", "user_id",
+			"category_id", "post_created",
+			"user_user_id", "login",
+			"category_name"})
+
+	expect := []*PostComplexData{
+		{
+			Post: Post{
+				ID:          "dc1e2f25-76a5-4aac-9212-96e2121c16f1",
+				Title:       "test fashion",
+				Type:        "text",
+				Description: "test fashion",
+				Score:       1,
+				UserID:      "522cd619-841f-43d5-866d-f880e5f48d18",
+				CategoryID:  1,
+				Created:     "2022-11-09T19:51:42Z",
+			},
+			User: User{
+				ID:    "522cd619-841f-43d5-866d-f880e5f48d18",
+				Login: "mer",
+			},
+			Category: Category{
+				Name: "fashion",
+			}},
+	}
+
+	for _, post := range expect {
+		rows = rows.AddRow(post.Post.ID, post.Post.Title,
+			post.Post.Type, post.Post.Description, post.Post.Score,
+			post.Post.UserID, post.Post.CategoryID, post.Post.Created, post.User.ID, post.User.Login,
+			post.Category.Name)
+	}
+
+	mock.
+		ExpectQuery(`	SELECT 
+		post.id AS post_id, title, type, description, 
+		score, user_id, category_id, post.created AS post_created,
+		user.id AS user_id, user.login,
+		category.name AS category_name
+		FROM post 
+		LEFT JOIN user ON user.id = post.user_id
+		LEFT JOIN category ON category.id = post.category_id
+		WHERE user.login = ?`).
+		WithArgs(login).
+		WillReturnRows(rows)
+
+	posts, err := postsRepo.GetByUserLogin(login)
+
+	if err != nil {
+		t.Errorf("unexpected error: %s", err)
+		return
+	}
+
+	if !reflect.DeepEqual(posts, expect) {
+		t.Errorf("result is not matched; want: %#v; have: %#v", posts, expect)
+		return
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Error("there were unfulfilled expectations")
+		return
+	}
+}
+
+func TestPostsGetByLoginScanError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	postsRepo := NewPostsRepo(db)
+	login := "test"
+
+	rows := sqlmock.
+		NewRows([]string{
+			"post_id", "title", "type"}).
+		AddRow("dc1e2f25-76a5-4aac-9212-96e2121c16f1", "test fashion", "text")
+
+	mock.
+		ExpectQuery(`	SELECT 
+		post.id AS post_id, title, type, description, 
+		score, user_id, category_id, post.created AS post_created,
+		user.id AS user_id, user.login,
+		category.name AS category_name
+		FROM post 
+		LEFT JOIN user ON user.id = post.user_id
+		LEFT JOIN category ON category.id = post.category_id
+		WHERE user.login = ?`).
+		WithArgs(login).
+		WillReturnRows(rows)
+
+	_, err = postsRepo.GetByUserLogin(login)
+
+	if err == nil {
+		t.Error("expected error, got nil")
+		return
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Error("there were unfulfilled expectations")
+		return
+	}
+}
+
+func TestPostsGetByLoginQueryError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	postsRepo := NewPostsRepo(db)
+	login := "test"
+
+	mock.
+		ExpectQuery(`	SELECT 
+		post.id AS post_id, title, type, description, 
+		score, user_id, category_id, post.created AS post_created,
+		user.id AS user_id, user.login,
+		category.name AS category_name
+		FROM post 
+		LEFT JOIN user ON user.id = post.user_id
+		LEFT JOIN category ON category.id = post.category_id
+		WHERE user.login = ?`).
+		WithArgs(login).
+		WillReturnError(fmt.Errorf("db_error"))
+
+	_, err = postsRepo.GetByUserLogin(login)
+
+	if err == nil {
+		t.Error("expected error, got nil")
+		return
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Error("there were unfulfilled expectations")
+		return
 	}
 }
