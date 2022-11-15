@@ -56,7 +56,12 @@ type LoginDTO struct {
 	Password string `json:"password"`
 }
 
-func PostConvertToDTO(commentRepo CommentRepoI, voteRepo VoteRepoI, data *PostComplexData) (*PostDTO, error) {
+type DTOConverter struct {
+	CommentRepo CommentRepoI
+	VoteRepo    VoteRepoI
+}
+
+func (converter *DTOConverter) PostConvertToDTO(data *PostComplexData) (*PostDTO, error) {
 	postDTO := &PostDTO{
 		ID: data.Post.ID,
 		Author: &AuthorDTO{
@@ -77,23 +82,23 @@ func PostConvertToDTO(commentRepo CommentRepoI, voteRepo VoteRepoI, data *PostCo
 
 	postIds := make([]string, 0, 1)
 	postIds = append(postIds, data.Post.ID)
-	comments, err := commentRepo.GetCommentsByPostIds(postIds)
+	comments, err := converter.CommentRepo.GetCommentsByPostIds(postIds)
 	if nil != err {
 		return nil, err
 	}
 
-	postDTO.Comments = CommentsConvertToDTO(comments[data.Post.ID])
+	postDTO.Comments = converter.CommentsConvertToDTO(comments[data.Post.ID])
 
-	votes, err := voteRepo.GetVotesByPostIds(postIds)
+	votes, err := converter.VoteRepo.GetVotesByPostIds(postIds)
 	if nil != err {
 		return nil, err
 	}
-	postDTO.Votes = VotesConvertToDTO(votes[data.Post.ID])
+	postDTO.Votes = converter.VotesConvertToDTO(votes[data.Post.ID])
 
 	return postDTO, nil
 }
 
-func CommentsConvertToDTO(data []*CommentComplexData) []*CommentDTO {
+func (converter *DTOConverter) CommentsConvertToDTO(data []*CommentComplexData) []*CommentDTO {
 	commentsDTO := []*CommentDTO{}
 	for _, comment := range data {
 		commentDTO := &CommentDTO{
@@ -110,7 +115,7 @@ func CommentsConvertToDTO(data []*CommentComplexData) []*CommentDTO {
 	return commentsDTO
 }
 
-func VotesConvertToDTO(data []*Vote) []*VoteDTO {
+func (converter *DTOConverter) VotesConvertToDTO(data []*Vote) []*VoteDTO {
 	votesDTO := []*VoteDTO{}
 	for _, vote := range data {
 		voteDTO := &VoteDTO{
@@ -122,7 +127,7 @@ func VotesConvertToDTO(data []*Vote) []*VoteDTO {
 	return votesDTO
 }
 
-func PostsConvertToDTO(commentRepo CommentRepoI, voteRepo VoteRepoI, data []*PostComplexData) ([]*PostDTO, error) {
+func (converter *DTOConverter) PostsConvertToDTO(data []*PostComplexData) ([]*PostDTO, error) {
 	postsDTO := []*PostDTO{}
 	postIds := make([]string, 0, 10)
 	for _, post := range data {
@@ -147,19 +152,19 @@ func PostsConvertToDTO(commentRepo CommentRepoI, voteRepo VoteRepoI, data []*Pos
 		postsDTO = append(postsDTO, postDTO)
 	}
 	if len(postIds) > 0 {
-		comments, err := commentRepo.GetCommentsByPostIds(postIds)
+		comments, err := converter.CommentRepo.GetCommentsByPostIds(postIds)
 		if nil != err {
 			fmt.Println("get comments: ", err)
 			return nil, err
 		}
-		votes, err := voteRepo.GetVotesByPostIds(postIds)
+		votes, err := converter.VoteRepo.GetVotesByPostIds(postIds)
 		if nil != err {
 			fmt.Println("get votes: ", err)
 			return nil, err
 		}
 		for _, post := range postsDTO {
-			post.Comments = CommentsConvertToDTO(comments[post.ID])
-			post.Votes = VotesConvertToDTO(votes[post.ID])
+			post.Comments = converter.CommentsConvertToDTO(comments[post.ID])
+			post.Votes = converter.VotesConvertToDTO(votes[post.ID])
 		}
 	}
 

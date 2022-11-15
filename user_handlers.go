@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -16,16 +15,14 @@ import (
 )
 
 type UserHandler struct {
-	Tmpl           *template.Template
 	SessionManager SessionManager
 	UserRepo       *UserRepo
 	PostsRepo      *PostsRepo
 	Logger         *log.Logger
 }
 
-func NewUserHandler(db *sql.DB, templates *template.Template, sm SessionManager) *UserHandler {
+func NewUserHandler(db *sql.DB, sm SessionManager) *UserHandler {
 	return &UserHandler{
-		Tmpl:           templates,
 		SessionManager: sm,
 		UserRepo:       NewUserRepo(db),
 		PostsRepo:      NewPostsRepo(db),

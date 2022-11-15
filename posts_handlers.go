@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -14,24 +13,82 @@ import (
 	"github.com/gorilla/mux"
 )
 
+type PostRepoI interface {
+	GetAll() ([]*PostComplexData, error)
+	GetById(id string) (*PostComplexData, error)
+	GetByCategoryName(categoryName string) ([]*PostComplexData, error)
+	GetByUserLogin(userLogin string) ([]*PostComplexData, error)
+	Add(post *Post) (*string, error)
+	Delete(id string) (bool, error)
+	UpVote(id string) (bool, error)
+	DownVote(id string) (bool, error)
+}
+
+type CommentRepoI interface {
+	Add(comment *Comment) (*string, error)
+	Delete(id string) (bool, error)
+	GetCommentsByPostIds(postIds []string) (map[string][]*CommentComplexData, error)
+}
+
+type VoteRepoI interface {
+	GetVotesByPostIds(postIds []string) (map[string][]*Vote, error)
+}
+
+type DictionaryRepoI interface {
+	GetCategoryByName(name string) (*Category, error)
+}
+
+type DTOConverterI interface {
+	PostConvertToDTO(data *PostComplexData) (*PostDTO, error)
+	CommentsConvertToDTO(data []*CommentComplexData) []*CommentDTO
+	VotesConvertToDTO(data []*Vote) []*VoteDTO
+	PostsConvertToDTO(data []*PostComplexData) ([]*PostDTO, error)
+}
+
+type TimeGetterI interface {
+	GetCreated() string
+}
+
+type TimeGetter struct{}
+
+func (timer *TimeGetter) GetCreated() string {
+	return time.Now().Format(time.RFC3339)
+}
+
+type UUIDGetterI interface {
+	GetUUID() string
+}
+
+type UUIDGetter struct{}
+
+func (uuidGetter *UUIDGetter) GetUUID() string {
+	return uuid.NewString()
+}
+
 type PostsHandler struct {
-	Tmpl           *template.Template
 	PostsRepo      PostRepoI
-	CommentRepo    CommentRepoI
+	DTOConverter   DTOConverterI
 	DictionaryRepo DictionaryRepoI
-	VoteRepo       VoteRepoI
+	CommentRepo    CommentRepoI
+	TimeGetter     TimeGetterI
+	UUIDGetter     UUIDGetterI
 	Logger         *log.Logger
 }
 
 var ScoreDefault uint32 = 1
 
-func NewPostsHandler(db *sql.DB, templates *template.Template) *PostsHandler {
+func NewPostsHandler(db *sql.DB) *PostsHandler {
+	commentRepo := NewCommentRepo(db)
 	return &PostsHandler{
-		Tmpl:           templates,
-		PostsRepo:      NewPostsRepo(db),
-		CommentRepo:    NewCommentRepo(db),
-		VoteRepo:       NewVoteRepo(db),
+		PostsRepo: NewPostsRepo(db),
+		DTOConverter: &DTOConverter{
+			CommentRepo: commentRepo,
+			VoteRepo:    NewVoteRepo(db),
+		},
 		DictionaryRepo: NewDictionaryRepo(db),
+		CommentRepo:    commentRepo,
+		TimeGetter:     &TimeGetter{},
+		UUIDGetter:     &UUIDGetter{},
 		Logger:         nil,
 	}
 }
@@ -39,16 +96,19 @@ func NewPostsHandler(db *sql.DB, templates *template.Template) *PostsHandler {
 func (h *PostsHandler) GetById(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id := params["POST_ID"]
+	fmt.Printf("param: %#v", params)
 	data, err := h.PostsRepo.GetById(id)
 	if nil != err {
 		fmt.Println("can't get post by id", err)
 		jsonError(w, http.StatusInternalServerError, "can't get post by id")
+		return
 	}
 
-	postDTO, err := PostConvertToDTO(h.CommentRepo, h.VoteRepo, data)
+	postDTO, err := h.DTOConverter.PostConvertToDTO(data)
 	if err != nil {
 		fmt.Println("can't convert post to dto", err)
 		jsonError(w, http.StatusInternalServerError, "can't convert post to dto")
+		return
 	}
 
 	w.Header().Add("Content-Type", "application/json")
@@ -63,12 +123,14 @@ func (h *PostsHandler) GetByCategoryName(w http.ResponseWriter, r *http.Request)
 
 	if nil != err {
 		jsonError(w, http.StatusInternalServerError, "can't get posts by category")
+		return
 	}
 
-	postsDTO, err := PostsConvertToDTO(h.CommentRepo, h.VoteRepo, data)
+	postsDTO, err := h.DTOConverter.PostsConvertToDTO(data)
 	if err != nil {
 		fmt.Println("can't convert posts to dto", err)
 		jsonError(w, http.StatusInternalServerError, "can't convert to dto")
+		return
 	}
 
 	w.Header().Add("Content-Type", "application/json")
@@ -83,10 +145,11 @@ func (h *PostsHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	postsDTO, err := PostsConvertToDTO(h.CommentRepo, h.VoteRepo, data)
+	postsDTO, err := h.DTOConverter.PostsConvertToDTO(data)
 	if err != nil {
 		fmt.Println("can't convert posts to dto", err)
 		jsonError(w, http.StatusInternalServerError, "can't convert to dto")
+		return
 	}
 
 	w.Header().Add("Content-Type", "application/json")
@@ -122,14 +185,14 @@ func (h *PostsHandler) Add(w http.ResponseWriter, r *http.Request) {
 	}
 
 	newPost := &Post{
-		ID:          uuid.NewString(),
+		ID:          h.UUIDGetter.GetUUID(),
 		Title:       requestData.Title,
 		Type:        requestData.Type,
 		Description: requestData.Text,
 		Score:       ScoreDefault,
 		UserID:      sess.UserID,
 		CategoryID:  uint(category.ID),
-		Created:     time.Now().Format(time.RFC3339),
+		Created:     h.TimeGetter.GetCreated(),
 	}
 
 	lastID, err := h.PostsRepo.Add(newPost)
@@ -149,10 +212,11 @@ func (h *PostsHandler) Add(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	postDTO, err := PostConvertToDTO(h.CommentRepo, h.VoteRepo, data)
+	postDTO, err := h.DTOConverter.PostConvertToDTO(data)
 	if err != nil {
 		fmt.Println("can't convert post to dto", err)
 		jsonError(w, http.StatusInternalServerError, "can't convert to dto")
+		return
 	}
 
 	jsonResponse(w, postDTO)
@@ -166,6 +230,7 @@ func (h *PostsHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 	if nil != err || !isDeleted {
 		jsonError(w, http.StatusInternalServerError, "can't delete post, err")
+		return
 	}
 
 	fmt.Println("Delete post", id)
@@ -192,10 +257,11 @@ func (h *PostsHandler) UpVote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	postUpdatedDTO, err := PostConvertToDTO(h.CommentRepo, h.VoteRepo, data)
+	postUpdatedDTO, err := h.DTOConverter.PostConvertToDTO(data)
 	if err != nil {
 		fmt.Println("can't convert post to dto", err)
 		jsonError(w, http.StatusInternalServerError, "can't convert to dto")
+		return
 	}
 
 	w.Header().Add("Content-Type", "application/json")
@@ -211,18 +277,21 @@ func (h *PostsHandler) DownVote(w http.ResponseWriter, r *http.Request) {
 	if nil != err {
 		fmt.Println("can't down vote", err)
 		jsonError(w, http.StatusInternalServerError, "can't down vote")
+		return
 	}
 
 	data, err := h.PostsRepo.GetById(postId)
 
 	if nil != err {
 		jsonError(w, http.StatusInternalServerError, "can't get updated post")
+		return
 	}
 
-	postUpdatedDTO, err := PostConvertToDTO(h.CommentRepo, h.VoteRepo, data)
+	postUpdatedDTO, err := h.DTOConverter.PostConvertToDTO(data)
 	if err != nil {
 		fmt.Println("can't convert post to dto", err)
 		jsonError(w, http.StatusInternalServerError, "can't convert to dto")
+		return
 	}
 
 	w.Header().Add("Content-Type", "application/json")
@@ -238,18 +307,21 @@ func (h *PostsHandler) UnVote(w http.ResponseWriter, r *http.Request) {
 	if nil != err {
 		fmt.Println("can't down vote", err)
 		jsonError(w, http.StatusInternalServerError, "can't down vote")
+		return
 	}
 
 	data, err := h.PostsRepo.GetById(postId)
 
 	if nil != err {
 		jsonError(w, http.StatusInternalServerError, "can't get updated post")
+		return
 	}
 
-	postUpdatedDTO, err := PostConvertToDTO(h.CommentRepo, h.VoteRepo, data)
+	postUpdatedDTO, err := h.DTOConverter.PostConvertToDTO(data)
 	if err != nil {
 		fmt.Println("can't convert post to dto", err)
 		jsonError(w, http.StatusInternalServerError, "can't convert to dto")
+		return
 	}
 
 	w.Header().Add("Content-Type", "application/json")
@@ -284,11 +356,11 @@ func (h *PostsHandler) AddComment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	newComment := &Comment{
-		ID:      uuid.NewString(),
+		ID:      h.UUIDGetter.GetUUID(),
 		Body:    commentRequest.Comment,
 		PostId:  postId,
 		UserId:  sess.UserID,
-		Created: time.Now().Format(time.RFC3339),
+		Created: h.TimeGetter.GetCreated(),
 	}
 
 	_, err = h.CommentRepo.Add(newComment)
@@ -307,10 +379,11 @@ func (h *PostsHandler) AddComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	postUpdatedDTO, err := PostConvertToDTO(h.CommentRepo, h.VoteRepo, data)
+	postUpdatedDTO, err := h.DTOConverter.PostConvertToDTO(data)
 	if err != nil {
 		fmt.Println("can't convert post to dto", err)
 		jsonError(w, http.StatusInternalServerError, "can't convert to dto")
+		return
 	}
 
 	w.Header().Add("Content-Type", "application/json")
@@ -326,6 +399,7 @@ func (h *PostsHandler) DeleteComment(w http.ResponseWriter, r *http.Request) {
 
 	if nil != err || !isDeleted {
 		jsonError(w, http.StatusInternalServerError, "can't delete comment, err")
+		return
 	}
 
 	fmt.Println("Delete comment")
@@ -334,12 +408,14 @@ func (h *PostsHandler) DeleteComment(w http.ResponseWriter, r *http.Request) {
 
 	if nil != err {
 		jsonError(w, http.StatusInternalServerError, "can't get updated post")
+		return
 	}
 
-	postUpdatedDTO, err := PostConvertToDTO(h.CommentRepo, h.VoteRepo, data)
+	postUpdatedDTO, err := h.DTOConverter.PostConvertToDTO(data)
 	if err != nil {
 		fmt.Println("can't convert post to dto", err)
 		jsonError(w, http.StatusInternalServerError, "can't convert to dto")
+		return
 	}
 
 	w.Header().Add("Content-Type", "application/json")

@@ -34,8 +34,8 @@ func main() {
 
 	sm := NewSessionDBManagerJWT(db)
 
-	postsHandler := NewPostsHandler(db, templates)
-	userHandler := NewUserHandler(db, templates, sm)
+	postsHandler := NewPostsHandler(db)
+	userHandler := NewUserHandler(db, sm)
 
 	router := mux.NewRouter()
 
