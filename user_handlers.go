@@ -14,19 +14,37 @@ import (
 	"github.com/gorilla/mux"
 )
 
+type SessionManagerI interface {
+	Check(*http.Request) (*Session, error)
+	Create(http.ResponseWriter, *User) (*Session, error)
+	DestroyCurrent(http.ResponseWriter, *http.Request) error
+	DestroyAll(http.ResponseWriter, *User) error
+}
+
+type UserRepoI interface {
+	GetById(id string) (*User, error)
+	GetByLogin(login string) (*User, error)
+	Create(user *User) (*string, error)
+}
+
 type UserHandler struct {
-	SessionManager SessionManager
-	UserRepo       *UserRepo
-	PostsRepo      *PostsRepo
+	SessionManager SessionManagerI
+	UserRepo       UserRepoI
+	PostsRepo      PostRepoI
+	DTOConverter   DTOConverterI
 	Logger         *log.Logger
 }
 
-func NewUserHandler(db *sql.DB, sm SessionManager) *UserHandler {
+func NewUserHandler(db *sql.DB, sm SessionManagerI) *UserHandler {
 	return &UserHandler{
 		SessionManager: sm,
 		UserRepo:       NewUserRepo(db),
 		PostsRepo:      NewPostsRepo(db),
-		Logger:         nil,
+		DTOConverter: &DTOConverter{
+			CommentRepo: NewCommentRepo(db),
+			VoteRepo:    NewVoteRepo(db),
+		},
+		Logger: nil,
 	}
 }
 
@@ -58,17 +76,20 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	if nil != err {
 		fmt.Println("can't read request: ", err.Error())
 		jsonError(w, http.StatusInternalServerError, "can't read request")
+		return
 	}
 	registerReuqest := &LoginDTO{}
 	err = json.Unmarshal(body, registerReuqest)
 	if nil != err {
 		fmt.Println("can't unpack payload: ", err.Error())
 		jsonError(w, http.StatusInternalServerError, "can't unpack payload")
+		return
 	}
 	passwordHash, err := GeneratePasswordHash(registerReuqest.Password)
 	if nil != err {
 		fmt.Println("can't generate a hash for the password: ", err.Error())
 		jsonError(w, http.StatusInternalServerError, "can't generate a hash for the password")
+		return
 	}
 	user := &User{
 		Login:    registerReuqest.UserName,
@@ -78,12 +99,14 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	if nil != err {
 		fmt.Println("can't register a new user: ", err.Error())
 		jsonError(w, http.StatusInternalServerError, "can't register a new user")
+		return
 	}
 	fmt.Println("Create user with id", lastID)
 	userAdded, err := h.UserRepo.GetById(*lastID)
 	if nil != err {
 		fmt.Println("can't get new added user: ", err.Error())
 		jsonError(w, http.StatusInternalServerError, "can't get new added user")
+		return
 	}
 
 	sess, err := h.SessionManager.Create(w, userAdded)
@@ -98,6 +121,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	if nil != err {
 		fmt.Println("can't generate jwt token: ", err.Error())
 		jsonError(w, http.StatusInternalServerError, "can't generate jwt token")
+		return
 	}
 	data := map[string]string{
 		"token": tokenString,
@@ -113,21 +137,25 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	if nil != err {
 		fmt.Println("can't read request body", err.Error())
 		jsonError(w, http.StatusInternalServerError, "can't read request body")
+		return
 	}
 	loginRequest := &LoginDTO{}
 	err = json.Unmarshal(data, loginRequest)
 	if nil != err {
 		fmt.Println("can't unpack payload: ", err.Error())
 		jsonError(w, http.StatusInternalServerError, "can't unpack payload")
+		return
 	}
 	userStored, err := h.UserRepo.GetByLogin(loginRequest.UserName)
 	if nil != err {
 		fmt.Println("can't get user by login: ", err.Error())
 		jsonError(w, http.StatusInternalServerError, "user not found")
+		return
 	}
 	if !CheckPasswordHash(loginRequest.Password, userStored.Password) {
 		fmt.Println("invalid password: ", err.Error())
 		jsonError(w, http.StatusUnauthorized, "invalid password")
+		return
 	}
 
 	sess, err := h.SessionManager.Create(w, userStored)
@@ -142,6 +170,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	if nil != err {
 		fmt.Println("can't generate jwt token: ", err.Error())
 		jsonError(w, http.StatusInternalServerError, "can't generate jwt token")
+		return
 	}
 	tokenData := map[string]string{
 		"token": validToken,
@@ -154,10 +183,18 @@ func (h *UserHandler) GetPosts(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	login := params["USER_LOGIN"]
 
-	postsDTO, err := h.PostsRepo.GetByUserLogin(login)
+	data, err := h.PostsRepo.GetByUserLogin(login)
 	if nil != err {
 		jsonError(w, http.StatusInternalServerError, "can't get posts by user login")
+		return
 	}
+
+	postsDTO, err := h.DTOConverter.PostsConvertToDTO(data)
+	if nil != err {
+		jsonError(w, http.StatusInternalServerError, "can't convert posts by user login")
+		return
+	}
+
 	w.Header().Add("Content-Type", "application/json")
 	jsonResponse(w, postsDTO)
 }

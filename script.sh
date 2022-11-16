@@ -7,6 +7,8 @@ export PATH=$PATH:$HOME/go/bin
 // PostsRepoI DTOConverterI should be nearby a realization
 mockgen -source=posts_handlers.go -destination=posts_handlers_mock.go -package=main
 
+mockgen -source=user_handlers.go -destination=user_handlers_mock.go -package=main
+
 go test -v -coverprofile=tests_cover.out && go tool cover -html=tests_cover.out -o tests_cover.html && rm tests_cover.out
 open -a Safari ./tests_cover.html
 

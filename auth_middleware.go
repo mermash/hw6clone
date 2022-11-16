@@ -8,10 +8,10 @@ import (
 )
 
 type AuthMiddleware struct {
-	Sm SessionManager
+	Sm SessionManagerI
 }
 
-func NewAuthMiddleware(sm SessionManager) AuthMiddleware {
+func NewAuthMiddleware(sm SessionManagerI) AuthMiddleware {
 	fmt.Println("Create authmiddleware")
 	return AuthMiddleware{
 		Sm: sm,

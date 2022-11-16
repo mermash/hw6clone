@@ -67,7 +67,7 @@
 				
 				<option value="file5">hw5_redditclone/posts_handlers.go (66.8%)</option>
 				
-				<option value="file6">hw5_redditclone/posts_handlers_mock.go (76.4%)</option>
+				<option value="file6">hw5_redditclone/posts_handlers_mock.go (80.9%)</option>
 				
 				<option value="file7">hw5_redditclone/posts_repo.go (100.0%)</option>
 				
@@ -75,15 +75,17 @@
 				
 				<option value="file9">hw5_redditclone/session_manager_jwt.go (0.0%)</option>
 				
-				<option value="file10">hw5_redditclone/user_handlers.go (0.0%)</option>
+				<option value="file10">hw5_redditclone/user_handlers.go (8.2%)</option>
 				
-				<option value="file11">hw5_redditclone/user_repo.go (0.0%)</option>
+				<option value="file11">hw5_redditclone/user_handlers_mock.go (5.5%)</option>
 				
-				<option value="file12">hw5_redditclone/user_utils.go (0.0%)</option>
+				<option value="file12">hw5_redditclone/user_repo.go (0.0%)</option>
 				
-				<option value="file13">hw5_redditclone/utils.go (37.5%)</option>
+				<option value="file13">hw5_redditclone/user_utils.go (0.0%)</option>
 				
-				<option value="file14">hw5_redditclone/vote_repo.go (0.0%)</option>
+				<option value="file14">hw5_redditclone/utils.go (37.5%)</option>
+				
+				<option value="file15">hw5_redditclone/vote_repo.go (0.0%)</option>
 				
 				</select>
 			</div>
@@ -107,10 +109,10 @@ import (
 )
 
 type AuthMiddleware struct {
-        Sm SessionManager
+        Sm SessionManagerI
 }
 
-func NewAuthMiddleware(sm SessionManager) AuthMiddleware <span class="cov0" title="0">{
+func NewAuthMiddleware(sm SessionManagerI) AuthMiddleware <span class="cov0" title="0">{
         fmt.Println("Create authmiddleware")
         return AuthMiddleware{
                 Sm: sm,
@@ -1120,7 +1122,7 @@ func (mr *MockPostRepoIMockRecorder) GetById(id interface{}) *gomock.Call <span 
 }</span>
 
 // GetByUserLogin mocks base method.
-func (m *MockPostRepoI) GetByUserLogin(userLogin string) ([]*PostComplexData, error) <span class="cov0" title="0">{
+func (m *MockPostRepoI) GetByUserLogin(userLogin string) ([]*PostComplexData, error) <span class="cov8" title="1">{
         m.ctrl.T.Helper()
         ret := m.ctrl.Call(m, "GetByUserLogin", userLogin)
         ret0, _ := ret[0].([]*PostComplexData)
@@ -1129,7 +1131,7 @@ func (m *MockPostRepoI) GetByUserLogin(userLogin string) ([]*PostComplexData, er
 }</span>
 
 // GetByUserLogin indicates an expected call of GetByUserLogin.
-func (mr *MockPostRepoIMockRecorder) GetByUserLogin(userLogin interface{}) *gomock.Call <span class="cov0" title="0">{
+func (mr *MockPostRepoIMockRecorder) GetByUserLogin(userLogin interface{}) *gomock.Call <span class="cov8" title="1">{
         mr.mock.ctrl.T.Helper()
         return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByUserLogin", reflect.TypeOf((*MockPostRepoI)(nil).GetByUserLogin), userLogin)
 }</span>
@@ -1683,19 +1685,11 @@ func (repo *PostsRepo) DownVote(id string) (bool, error) <span class="cov8" titl
 
 import (
         "context"
-        "net/http"
 )
 
 type Session struct {
         ID     string
         UserID string
-}
-
-type SessionManager interface {
-        Check(*http.Request) (*Session, error)
-        Create(http.ResponseWriter, *User) (*Session, error)
-        DestroyCurrent(http.ResponseWriter, *http.Request) error
-        DestroyAll(http.ResponseWriter, *User) error
 }
 
 type ctxKey int
@@ -1862,19 +1856,37 @@ import (
         "github.com/gorilla/mux"
 )
 
+type SessionManagerI interface {
+        Check(*http.Request) (*Session, error)
+        Create(http.ResponseWriter, *User) (*Session, error)
+        DestroyCurrent(http.ResponseWriter, *http.Request) error
+        DestroyAll(http.ResponseWriter, *User) error
+}
+
+type UserRepoI interface {
+        GetById(id string) (*User, error)
+        GetByLogin(login string) (*User, error)
+        Create(user *User) (*string, error)
+}
+
 type UserHandler struct {
-        SessionManager SessionManager
-        UserRepo       *UserRepo
-        PostsRepo      *PostsRepo
+        SessionManager SessionManagerI
+        UserRepo       UserRepoI
+        PostsRepo      PostRepoI
+        DTOConverter   DTOConverterI
         Logger         *log.Logger
 }
 
-func NewUserHandler(db *sql.DB, sm SessionManager) *UserHandler <span class="cov0" title="0">{
+func NewUserHandler(db *sql.DB, sm SessionManagerI) *UserHandler <span class="cov0" title="0">{
         return &amp;UserHandler{
                 SessionManager: sm,
                 UserRepo:       NewUserRepo(db),
                 PostsRepo:      NewPostsRepo(db),
-                Logger:         nil,
+                DTOConverter: &amp;DTOConverter{
+                        CommentRepo: NewCommentRepo(db),
+                        VoteRepo:    NewVoteRepo(db),
+                },
+                Logger: nil,
         }
 }</span>
 
@@ -1906,17 +1918,20 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) <span cla
         if nil != err </span><span class="cov0" title="0">{
                 fmt.Println("can't read request: ", err.Error())
                 jsonError(w, http.StatusInternalServerError, "can't read request")
+                return
         }</span>
         <span class="cov0" title="0">registerReuqest := &amp;LoginDTO{}
         err = json.Unmarshal(body, registerReuqest)
         if nil != err </span><span class="cov0" title="0">{
                 fmt.Println("can't unpack payload: ", err.Error())
                 jsonError(w, http.StatusInternalServerError, "can't unpack payload")
+                return
         }</span>
         <span class="cov0" title="0">passwordHash, err := GeneratePasswordHash(registerReuqest.Password)
         if nil != err </span><span class="cov0" title="0">{
                 fmt.Println("can't generate a hash for the password: ", err.Error())
                 jsonError(w, http.StatusInternalServerError, "can't generate a hash for the password")
+                return
         }</span>
         <span class="cov0" title="0">user := &amp;User{
                 Login:    registerReuqest.UserName,
@@ -1926,12 +1941,14 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) <span cla
         if nil != err </span><span class="cov0" title="0">{
                 fmt.Println("can't register a new user: ", err.Error())
                 jsonError(w, http.StatusInternalServerError, "can't register a new user")
+                return
         }</span>
         <span class="cov0" title="0">fmt.Println("Create user with id", lastID)
         userAdded, err := h.UserRepo.GetById(*lastID)
         if nil != err </span><span class="cov0" title="0">{
                 fmt.Println("can't get new added user: ", err.Error())
                 jsonError(w, http.StatusInternalServerError, "can't get new added user")
+                return
         }</span>
 
         <span class="cov0" title="0">sess, err := h.SessionManager.Create(w, userAdded)
@@ -1946,6 +1963,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) <span cla
         if nil != err </span><span class="cov0" title="0">{
                 fmt.Println("can't generate jwt token: ", err.Error())
                 jsonError(w, http.StatusInternalServerError, "can't generate jwt token")
+                return
         }</span>
         <span class="cov0" title="0">data := map[string]string{
                 "token": tokenString,
@@ -1961,21 +1979,25 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) <span class=
         if nil != err </span><span class="cov0" title="0">{
                 fmt.Println("can't read request body", err.Error())
                 jsonError(w, http.StatusInternalServerError, "can't read request body")
+                return
         }</span>
         <span class="cov0" title="0">loginRequest := &amp;LoginDTO{}
         err = json.Unmarshal(data, loginRequest)
         if nil != err </span><span class="cov0" title="0">{
                 fmt.Println("can't unpack payload: ", err.Error())
                 jsonError(w, http.StatusInternalServerError, "can't unpack payload")
+                return
         }</span>
         <span class="cov0" title="0">userStored, err := h.UserRepo.GetByLogin(loginRequest.UserName)
         if nil != err </span><span class="cov0" title="0">{
                 fmt.Println("can't get user by login: ", err.Error())
                 jsonError(w, http.StatusInternalServerError, "user not found")
+                return
         }</span>
         <span class="cov0" title="0">if !CheckPasswordHash(loginRequest.Password, userStored.Password) </span><span class="cov0" title="0">{
                 fmt.Println("invalid password: ", err.Error())
                 jsonError(w, http.StatusUnauthorized, "invalid password")
+                return
         }</span>
 
         <span class="cov0" title="0">sess, err := h.SessionManager.Create(w, userStored)
@@ -1990,6 +2012,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) <span class=
         if nil != err </span><span class="cov0" title="0">{
                 fmt.Println("can't generate jwt token: ", err.Error())
                 jsonError(w, http.StatusInternalServerError, "can't generate jwt token")
+                return
         }</span>
         <span class="cov0" title="0">tokenData := map[string]string{
                 "token": validToken,
@@ -1998,20 +2021,191 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) <span class=
         jsonResponse(w, tokenData)</span>
 }
 
-func (h *UserHandler) GetPosts(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+func (h *UserHandler) GetPosts(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
         params := mux.Vars(r)
         login := params["USER_LOGIN"]
 
-        postsDTO, err := h.PostsRepo.GetByUserLogin(login)
+        data, err := h.PostsRepo.GetByUserLogin(login)
         if nil != err </span><span class="cov0" title="0">{
                 jsonError(w, http.StatusInternalServerError, "can't get posts by user login")
+                return
         }</span>
-        <span class="cov0" title="0">w.Header().Add("Content-Type", "application/json")
+
+        <span class="cov8" title="1">postsDTO, err := h.DTOConverter.PostsConvertToDTO(data)
+        if nil != err </span><span class="cov0" title="0">{
+                jsonError(w, http.StatusInternalServerError, "can't convert posts by user login")
+                return
+        }</span>
+
+        <span class="cov8" title="1">w.Header().Add("Content-Type", "application/json")
         jsonResponse(w, postsDTO)</span>
 }
 </pre>
 		
-		<pre class="file" id="file11" style="display: none">package main
+		<pre class="file" id="file11" style="display: none">// Code generated by MockGen. DO NOT EDIT.
+// Source: user_handlers.go
+
+// Package main is a generated GoMock package.
+package main
+
+import (
+        http "net/http"
+        reflect "reflect"
+
+        gomock "github.com/golang/mock/gomock"
+)
+
+// MockSessionManagerI is a mock of SessionManagerI interface.
+type MockSessionManagerI struct {
+        ctrl     *gomock.Controller
+        recorder *MockSessionManagerIMockRecorder
+}
+
+// MockSessionManagerIMockRecorder is the mock recorder for MockSessionManagerI.
+type MockSessionManagerIMockRecorder struct {
+        mock *MockSessionManagerI
+}
+
+// NewMockSessionManagerI creates a new mock instance.
+func NewMockSessionManagerI(ctrl *gomock.Controller) *MockSessionManagerI <span class="cov8" title="1">{
+        mock := &amp;MockSessionManagerI{ctrl: ctrl}
+        mock.recorder = &amp;MockSessionManagerIMockRecorder{mock}
+        return mock
+}</span>
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockSessionManagerI) EXPECT() *MockSessionManagerIMockRecorder <span class="cov0" title="0">{
+        return m.recorder
+}</span>
+
+// Check mocks base method.
+func (m *MockSessionManagerI) Check(arg0 *http.Request) (*Session, error) <span class="cov0" title="0">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "Check", arg0)
+        ret0, _ := ret[0].(*Session)
+        ret1, _ := ret[1].(error)
+        return ret0, ret1
+}</span>
+
+// Check indicates an expected call of Check.
+func (mr *MockSessionManagerIMockRecorder) Check(arg0 interface{}) *gomock.Call <span class="cov0" title="0">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Check", reflect.TypeOf((*MockSessionManagerI)(nil).Check), arg0)
+}</span>
+
+// Create mocks base method.
+func (m *MockSessionManagerI) Create(arg0 http.ResponseWriter, arg1 *User) (*Session, error) <span class="cov0" title="0">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "Create", arg0, arg1)
+        ret0, _ := ret[0].(*Session)
+        ret1, _ := ret[1].(error)
+        return ret0, ret1
+}</span>
+
+// Create indicates an expected call of Create.
+func (mr *MockSessionManagerIMockRecorder) Create(arg0, arg1 interface{}) *gomock.Call <span class="cov0" title="0">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockSessionManagerI)(nil).Create), arg0, arg1)
+}</span>
+
+// DestroyAll mocks base method.
+func (m *MockSessionManagerI) DestroyAll(arg0 http.ResponseWriter, arg1 *User) error <span class="cov0" title="0">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "DestroyAll", arg0, arg1)
+        ret0, _ := ret[0].(error)
+        return ret0
+}</span>
+
+// DestroyAll indicates an expected call of DestroyAll.
+func (mr *MockSessionManagerIMockRecorder) DestroyAll(arg0, arg1 interface{}) *gomock.Call <span class="cov0" title="0">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DestroyAll", reflect.TypeOf((*MockSessionManagerI)(nil).DestroyAll), arg0, arg1)
+}</span>
+
+// DestroyCurrent mocks base method.
+func (m *MockSessionManagerI) DestroyCurrent(arg0 http.ResponseWriter, arg1 *http.Request) error <span class="cov0" title="0">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "DestroyCurrent", arg0, arg1)
+        ret0, _ := ret[0].(error)
+        return ret0
+}</span>
+
+// DestroyCurrent indicates an expected call of DestroyCurrent.
+func (mr *MockSessionManagerIMockRecorder) DestroyCurrent(arg0, arg1 interface{}) *gomock.Call <span class="cov0" title="0">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DestroyCurrent", reflect.TypeOf((*MockSessionManagerI)(nil).DestroyCurrent), arg0, arg1)
+}</span>
+
+// MockUserRepoI is a mock of UserRepoI interface.
+type MockUserRepoI struct {
+        ctrl     *gomock.Controller
+        recorder *MockUserRepoIMockRecorder
+}
+
+// MockUserRepoIMockRecorder is the mock recorder for MockUserRepoI.
+type MockUserRepoIMockRecorder struct {
+        mock *MockUserRepoI
+}
+
+// NewMockUserRepoI creates a new mock instance.
+func NewMockUserRepoI(ctrl *gomock.Controller) *MockUserRepoI <span class="cov0" title="0">{
+        mock := &amp;MockUserRepoI{ctrl: ctrl}
+        mock.recorder = &amp;MockUserRepoIMockRecorder{mock}
+        return mock
+}</span>
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockUserRepoI) EXPECT() *MockUserRepoIMockRecorder <span class="cov0" title="0">{
+        return m.recorder
+}</span>
+
+// Create mocks base method.
+func (m *MockUserRepoI) Create(user *User) (*string, error) <span class="cov0" title="0">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "Create", user)
+        ret0, _ := ret[0].(*string)
+        ret1, _ := ret[1].(error)
+        return ret0, ret1
+}</span>
+
+// Create indicates an expected call of Create.
+func (mr *MockUserRepoIMockRecorder) Create(user interface{}) *gomock.Call <span class="cov0" title="0">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockUserRepoI)(nil).Create), user)
+}</span>
+
+// GetById mocks base method.
+func (m *MockUserRepoI) GetById(id string) (*User, error) <span class="cov0" title="0">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "GetById", id)
+        ret0, _ := ret[0].(*User)
+        ret1, _ := ret[1].(error)
+        return ret0, ret1
+}</span>
+
+// GetById indicates an expected call of GetById.
+func (mr *MockUserRepoIMockRecorder) GetById(id interface{}) *gomock.Call <span class="cov0" title="0">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetById", reflect.TypeOf((*MockUserRepoI)(nil).GetById), id)
+}</span>
+
+// GetByLogin mocks base method.
+func (m *MockUserRepoI) GetByLogin(login string) (*User, error) <span class="cov0" title="0">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "GetByLogin", login)
+        ret0, _ := ret[0].(*User)
+        ret1, _ := ret[1].(error)
+        return ret0, ret1
+}</span>
+
+// GetByLogin indicates an expected call of GetByLogin.
+func (mr *MockUserRepoIMockRecorder) GetByLogin(login interface{}) *gomock.Call <span class="cov0" title="0">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByLogin", reflect.TypeOf((*MockUserRepoI)(nil).GetByLogin), login)
+}</span>
+</pre>
+		
+		<pre class="file" id="file12" style="display: none">package main
 
 import (
         "database/sql"
@@ -2077,7 +2271,7 @@ func (repo *UserRepo) Create(user *User) (*string, error) <span class="cov0" tit
 }
 </pre>
 		
-		<pre class="file" id="file12" style="display: none">package main
+		<pre class="file" id="file13" style="display: none">package main
 
 import (
         "fmt"
@@ -2100,7 +2294,7 @@ func CheckPasswordHash(passwordReceived string, hash string) bool <span class="c
 }
 </pre>
 		
-		<pre class="file" id="file13" style="display: none">package main
+		<pre class="file" id="file14" style="display: none">package main
 
 import (
         "encoding/json"
@@ -2153,7 +2347,7 @@ func PostsToDTO(posts []*Post) []*PostDTO <span class="cov0" title="0">{
 }
 </pre>
 		
-		<pre class="file" id="file14" style="display: none">package main
+		<pre class="file" id="file15" style="display: none">package main
 
 import (
         "database/sql"
