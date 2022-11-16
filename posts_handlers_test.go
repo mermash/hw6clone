@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"net/http/httptest"
 	"reflect"
 	"strings"
@@ -60,8 +61,44 @@ var (
 		},
 	}
 
-	multipleExpectation = `[{"id":"dc1e2f25-76a5-4aac-9212-96e2121c16f1","author":{"username":"mer","id":"522cd619-841f-43d5-866d-f880e5f48d18"},"category":"fashion","comments":[],"created":"2022-11-09T19:51:42Z","score":1,"text":"test fashion","title":"test fashion","type":"text","upvotepercentage":0,"votes":[],"views":0}]`
-	singleExpectation   = `{"id":"dc1e2f25-76a5-4aac-9212-96e2121c16f1","author":{"username":"mer","id":"522cd619-841f-43d5-866d-f880e5f48d18"},"category":"fashion","comments":[],"created":"2022-11-09T19:51:42Z","score":1,"text":"test fashion","title":"test fashion","type":"text","upvotepercentage":0,"votes":[],"views":0}`
+	postsDTOWithComments = []*PostDTO{
+		{
+			ID: "dc1e2f25-76a5-4aac-9212-96e2121c16f1",
+			Author: &AuthorDTO{
+				UserName: "mer",
+				ID:       "522cd619-841f-43d5-866d-f880e5f48d18",
+			},
+			Category: "fashion",
+			Comments: []*CommentDTO{
+				{
+					Author: &AuthorDTO{
+						UserName: "mer",
+						ID:       "522cd619-841f-43d5-866d-f880e5f48d18",
+					},
+					Body:    "test comment fashion",
+					Created: "2022-11-10T11:24:44Z",
+					ID:      "dbed62a8-79c5-43bd-9594-92cddeb261ac",
+				},
+			},
+			Created:          "2022-11-09T19:51:42Z",
+			Score:            1,
+			Text:             "test fashion",
+			Title:            "test fashion",
+			Type:             "text",
+			UpVotePercentage: 0,
+			Votes:            []*VoteDTO{},
+			Views:            0,
+		},
+	}
+
+	multipleExpectation           = `[{"id":"dc1e2f25-76a5-4aac-9212-96e2121c16f1","author":{"username":"mer","id":"522cd619-841f-43d5-866d-f880e5f48d18"},"category":"fashion","comments":[],"created":"2022-11-09T19:51:42Z","score":1,"text":"test fashion","title":"test fashion","type":"text","upvotepercentage":0,"votes":[],"views":0}]`
+	singleExpectation             = `{"id":"dc1e2f25-76a5-4aac-9212-96e2121c16f1","author":{"username":"mer","id":"522cd619-841f-43d5-866d-f880e5f48d18"},"category":"fashion","comments":[],"created":"2022-11-09T19:51:42Z","score":1,"text":"test fashion","title":"test fashion","type":"text","upvotepercentage":0,"votes":[],"views":0}`
+	singleExpectationWithComments = `{"id":"dc1e2f25-76a5-4aac-9212-96e2121c16f1","author":{"username":"mer","id":"522cd619-841f-43d5-866d-f880e5f48d18"},"category":"fashion","comments":[{"author":{"username":"mer","id":"522cd619-841f-43d5-866d-f880e5f48d18"},"body":"test comment fashion","created":"2022-11-10T11:24:44Z","id":"dbed62a8-79c5-43bd-9594-92cddeb261ac"}],"created":"2022-11-09T19:51:42Z","score":1,"text":"test fashion","title":"test fashion","type":"text","upvotepercentage":0,"votes":[],"views":0}`
+
+	sess = &Session{
+		ID:     "123",
+		UserID: "522cd619-841f-43d5-866d-f880e5f48d18",
+	}
 )
 
 func TestList(t *testing.T) {
@@ -275,6 +312,7 @@ func TestAdd(t *testing.T) {
 		Name: categoryName,
 	}
 
+	//success
 	postsRepoMock.EXPECT().Add(post).Return(&lastID, nil)
 	postsRepoMock.EXPECT().GetById(lastID).Return(multipleComplexData[0], nil)
 	dictionaryRepoMock.EXPECT().GetCategoryByName(categoryName).Return(category, nil)
@@ -284,10 +322,6 @@ func TestAdd(t *testing.T) {
 
 	req := httptest.NewRequest("POST", "/api/posts", strings.NewReader(reqBody))
 	w := httptest.NewRecorder()
-	sess := &Session{
-		ID:     "123",
-		UserID: "522cd619-841f-43d5-866d-f880e5f48d18",
-	}
 	ctx := context.WithValue(req.Context(), sessionKey, sess)
 	service.Add(w, req.WithContext(ctx))
 
@@ -297,6 +331,269 @@ func TestAdd(t *testing.T) {
 
 	if !reflect.DeepEqual(bodyStr, singleExpectation) {
 		t.Errorf("it's not matched; want: %#v; have: %#v", singleExpectation, bodyStr)
+		return
+	}
+
+	//dictionary error
+	dictionaryRepoMock.EXPECT().GetCategoryByName(categoryName).Return(nil, fmt.Errorf("dictionary error"))
+	req = httptest.NewRequest("POST", "/api/posts", strings.NewReader(reqBody))
+	w = httptest.NewRecorder()
+	ctx = context.WithValue(req.Context(), sessionKey, sess)
+	service.Add(w, req.WithContext(ctx))
+
+	resp = w.Result()
+	if resp.StatusCode != http.StatusInternalServerError {
+		t.Errorf("expected 500 status code, got : %d", resp.StatusCode)
+		return
+	}
+}
+
+func TestDelete(t *testing.T) {
+	log.SetOutput(ioutil.Discard)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	postsRepoMock := NewMockPostRepoI(ctrl)
+	commentRepoMock := NewMockCommentRepoI(ctrl)
+	dtoConverterMock := NewMockDTOConverterI(ctrl)
+	service := &PostsHandler{
+		PostsRepo:    postsRepoMock,
+		DTOConverter: dtoConverterMock,
+		CommentRepo:  commentRepoMock,
+	}
+	postId := "dc1e2f25-76a5-4aac-9212-96e2121c16f1"
+	urlVars := map[string]string{
+		"POST_ID": "dc1e2f25-76a5-4aac-9212-96e2121c16f1",
+	}
+
+	//success
+	expect := `{"message": "success"}`
+	postsRepoMock.EXPECT().Delete(postId).Return(true, nil)
+	req := httptest.NewRequest("DELETE", "/api/post/dc1e2f25-76a5-4aac-9212-96e2121c16f1", nil)
+	req = mux.SetURLVars(req, urlVars)
+	w := httptest.NewRecorder()
+
+	service.Delete(w, req)
+
+	resp := w.Result()
+	body, _ := ioutil.ReadAll(resp.Body)
+	bodyStr := string(body)
+	if !reflect.DeepEqual(bodyStr, expect) {
+		t.Errorf("it's not matched; want: %#v; have: %#v", expect, bodyStr)
+		return
+	}
+
+	//query error
+	postsRepoMock.EXPECT().Delete(postId).Return(false, fmt.Errorf("db_error"))
+	req = httptest.NewRequest("DELETE", "/api/post/dc1e2f25-76a5-4aac-9212-96e2121c16f1", nil)
+	req = mux.SetURLVars(req, urlVars)
+	w = httptest.NewRecorder()
+
+	service.Delete(w, req)
+
+	resp = w.Result()
+	if resp.StatusCode != http.StatusInternalServerError {
+		t.Errorf("expected 500 statuscode; got %d", resp.StatusCode)
+		return
+	}
+}
+
+func TestUpVote(t *testing.T) {
+	log.SetOutput(ioutil.Discard)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	postsRepoMock := NewMockPostRepoI(ctrl)
+	commentRepoMock := NewMockCommentRepoI(ctrl)
+	dtoConverterMock := NewMockDTOConverterI(ctrl)
+	service := &PostsHandler{
+		PostsRepo:    postsRepoMock,
+		DTOConverter: dtoConverterMock,
+		CommentRepo:  commentRepoMock,
+	}
+	postId := "dc1e2f25-76a5-4aac-9212-96e2121c16f1"
+	urlVars := map[string]string{
+		"POST_ID": "dc1e2f25-76a5-4aac-9212-96e2121c16f1",
+	}
+
+	//success
+	postsRepoMock.EXPECT().UpVote(postId).Return(true, nil)
+	postsRepoMock.EXPECT().GetById(postId).Return(multipleComplexData[0], nil)
+	dtoConverterMock.EXPECT().PostConvertToDTO(multipleComplexData[0]).Return(postsDTO[0], nil)
+	req := httptest.NewRequest("GET", "/api/post/dc1e2f25-76a5-4aac-9212-96e2121c16f1/upvote", nil)
+	req = mux.SetURLVars(req, urlVars)
+	w := httptest.NewRecorder()
+	service.UpVote(w, req)
+	resp := w.Result()
+	body, _ := ioutil.ReadAll(resp.Body)
+	bodyStr := string(body)
+	if !reflect.DeepEqual(bodyStr, singleExpectation) {
+		t.Errorf("it's not matched; want: %#v; have: %#v", singleExpectation, bodyStr)
+		return
+	}
+}
+
+func TestDownVote(t *testing.T) {
+	log.SetOutput(ioutil.Discard)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	postsRepoMock := NewMockPostRepoI(ctrl)
+	commentRepoMock := NewMockCommentRepoI(ctrl)
+	dtoConverterMock := NewMockDTOConverterI(ctrl)
+	service := &PostsHandler{
+		PostsRepo:    postsRepoMock,
+		DTOConverter: dtoConverterMock,
+		CommentRepo:  commentRepoMock,
+	}
+	postId := "dc1e2f25-76a5-4aac-9212-96e2121c16f1"
+	urlVars := map[string]string{
+		"POST_ID": "dc1e2f25-76a5-4aac-9212-96e2121c16f1",
+	}
+
+	//success
+	postsRepoMock.EXPECT().DownVote(postId).Return(true, nil)
+	postsRepoMock.EXPECT().GetById(postId).Return(multipleComplexData[0], nil)
+	dtoConverterMock.EXPECT().PostConvertToDTO(multipleComplexData[0]).Return(postsDTO[0], nil)
+	req := httptest.NewRequest("GET", "/api/post/dc1e2f25-76a5-4aac-9212-96e2121c16f1/downvote", nil)
+	req = mux.SetURLVars(req, urlVars)
+	w := httptest.NewRecorder()
+	service.DownVote(w, req)
+	resp := w.Result()
+	body, _ := ioutil.ReadAll(resp.Body)
+	bodyStr := string(body)
+	if !reflect.DeepEqual(bodyStr, singleExpectation) {
+		t.Errorf("it's not matched; want: %#v; have: %#v", singleExpectation, bodyStr)
+		return
+	}
+}
+
+func TestUnVote(t *testing.T) {
+	log.SetOutput(ioutil.Discard)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	postsRepoMock := NewMockPostRepoI(ctrl)
+	commentRepoMock := NewMockCommentRepoI(ctrl)
+	dtoConverterMock := NewMockDTOConverterI(ctrl)
+	service := &PostsHandler{
+		PostsRepo:    postsRepoMock,
+		DTOConverter: dtoConverterMock,
+		CommentRepo:  commentRepoMock,
+	}
+	postId := "dc1e2f25-76a5-4aac-9212-96e2121c16f1"
+	urlVars := map[string]string{
+		"POST_ID": "dc1e2f25-76a5-4aac-9212-96e2121c16f1",
+	}
+
+	//success
+	postsRepoMock.EXPECT().DownVote(postId).Return(true, nil)
+	postsRepoMock.EXPECT().GetById(postId).Return(multipleComplexData[0], nil)
+	dtoConverterMock.EXPECT().PostConvertToDTO(multipleComplexData[0]).Return(postsDTO[0], nil)
+	req := httptest.NewRequest("GET", "/api/post/dc1e2f25-76a5-4aac-9212-96e2121c16f1/unvote", nil)
+	req = mux.SetURLVars(req, urlVars)
+	w := httptest.NewRecorder()
+	service.UnVote(w, req)
+	resp := w.Result()
+	body, _ := ioutil.ReadAll(resp.Body)
+	bodyStr := string(body)
+	if !reflect.DeepEqual(bodyStr, singleExpectation) {
+		t.Errorf("it's not matched; want: %#v; have: %#v", singleExpectation, bodyStr)
+		return
+	}
+}
+
+func TestAddComment(t *testing.T) {
+	log.SetOutput(ioutil.Discard)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	postsRepoMock := NewMockPostRepoI(ctrl)
+	commentRepoMock := NewMockCommentRepoI(ctrl)
+	dtoConverterMock := NewMockDTOConverterI(ctrl)
+	timeGetterMock := NewMockTimeGetterI(ctrl)
+	uuidGetterMock := NewMockUUIDGetterI(ctrl)
+	service := &PostsHandler{
+		PostsRepo:    postsRepoMock,
+		DTOConverter: dtoConverterMock,
+		CommentRepo:  commentRepoMock,
+		TimeGetter:   timeGetterMock,
+		UUIDGetter:   uuidGetterMock,
+	}
+
+	lastID := "dbed62a8-79c5-43bd-9594-92cddeb261ac"
+	newComment := &Comment{
+		ID:      "dbed62a8-79c5-43bd-9594-92cddeb261ac",
+		Body:    "test comment fashion",
+		PostId:  "dc1e2f25-76a5-4aac-9212-96e2121c16f1",
+		UserId:  "522cd619-841f-43d5-866d-f880e5f48d18",
+		Created: "2022-11-10T11:24:44Z",
+	}
+	reqBody := `{"comment":"test comment fashion"}`
+	urlVars := map[string]string{
+		"POST_ID": "dc1e2f25-76a5-4aac-9212-96e2121c16f1",
+	}
+
+	//success
+	commentRepoMock.EXPECT().Add(newComment).Return(&lastID, nil)
+	postsRepoMock.EXPECT().GetById(newComment.PostId).Return(multipleComplexData[0], nil)
+	dtoConverterMock.EXPECT().PostConvertToDTO(multipleComplexData[0]).Return(postsDTOWithComments[0], nil)
+	timeGetterMock.EXPECT().GetCreated().Return(newComment.Created)
+	uuidGetterMock.EXPECT().GetUUID().Return(lastID)
+
+	req := httptest.NewRequest("POST", "/api/post/dc1e2f25-76a5-4aac-9212-96e2121c16f1", strings.NewReader(reqBody))
+	w := httptest.NewRecorder()
+	req = mux.SetURLVars(req, urlVars)
+	ctx := context.WithValue(req.Context(), sessionKey, sess)
+	service.AddComment(w, req.WithContext(ctx))
+
+	resp := w.Result()
+	body, _ := ioutil.ReadAll(resp.Body)
+	bodyStr := string(body)
+	if !reflect.DeepEqual(bodyStr, singleExpectationWithComments) {
+		t.Errorf("it's not matched; want: %#v; have: %#v", singleExpectationWithComments, bodyStr)
+		return
+	}
+}
+
+func TestDeleteComment(t *testing.T) {
+	log.SetOutput(io.Discard)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	postsRepoMock := NewMockPostRepoI(ctrl)
+	commentRepoMock := NewMockCommentRepoI(ctrl)
+	dtoConverterMock := NewMockDTOConverterI(ctrl)
+	timeGetterMock := NewMockTimeGetterI(ctrl)
+	uuidGetterMock := NewMockUUIDGetterI(ctrl)
+	service := &PostsHandler{
+		PostsRepo:    postsRepoMock,
+		DTOConverter: dtoConverterMock,
+		CommentRepo:  commentRepoMock,
+		TimeGetter:   timeGetterMock,
+		UUIDGetter:   uuidGetterMock,
+	}
+
+	commentID := "dbed62a8-79c5-43bd-9594-92cddeb261ac"
+	postID := "dc1e2f25-76a5-4aac-9212-96e2121c16f1"
+	urlVars := map[string]string{
+		"POST_ID":    postID,
+		"COMMENT_ID": commentID,
+	}
+
+	commentRepoMock.EXPECT().Delete(commentID).Return(true, nil)
+	postsRepoMock.EXPECT().GetById(postID).Return(multipleComplexData[0], nil)
+	dtoConverterMock.EXPECT().PostConvertToDTO(multipleComplexData[0]).Return(postsDTO[0], nil)
+
+	req := httptest.NewRequest("DELETE", "/api/post/dc1e2f25-76a5-4aac-9212-96e2121c16f1/dbed62a8-79c5-43bd-9594-92cddeb261ac", nil)
+	req = mux.SetURLVars(req, urlVars)
+	ctx := context.WithValue(req.Context(), sessionKey, sess)
+	w := httptest.NewRecorder()
+	service.DeleteComment(w, req.WithContext(ctx))
+
+	resp := w.Result()
+	body, _ := ioutil.ReadAll(resp.Body)
+	bodyStr := string(body)
+	if !reflect.DeepEqual(bodyStr, singleExpectation) {
+		t.Errorf("it's not match; want: %#v; have: %#v", singleExpectation, bodyStr)
 		return
 	}
 }

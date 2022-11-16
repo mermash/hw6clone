@@ -65,9 +65,9 @@
 				
 				<option value="file4">hw5_redditclone/main.go (0.0%)</option>
 				
-				<option value="file5">hw5_redditclone/posts_handlers.go (30.1%)</option>
+				<option value="file5">hw5_redditclone/posts_handlers.go (66.8%)</option>
 				
-				<option value="file6">hw5_redditclone/posts_handlers_mock.go (53.5%)</option>
+				<option value="file6">hw5_redditclone/posts_handlers_mock.go (76.4%)</option>
 				
 				<option value="file7">hw5_redditclone/posts_repo.go (100.0%)</option>
 				
@@ -750,7 +750,7 @@ func (h *PostsHandler) Add(w http.ResponseWriter, r *http.Request) <span class="
         }</span>
 
         <span class="cov8" title="1">category, err := h.DictionaryRepo.GetCategoryByName(requestData.Category)
-        if err != nil </span><span class="cov0" title="0">{
+        if err != nil </span><span class="cov8" title="1">{
                 jsonError(w, http.StatusInternalServerError, "can't get category")
                 return
         }</span>
@@ -793,24 +793,24 @@ func (h *PostsHandler) Add(w http.ResponseWriter, r *http.Request) <span class="
         <span class="cov8" title="1">jsonResponse(w, postDTO)</span>
 }
 
-func (h *PostsHandler) Delete(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+func (h *PostsHandler) Delete(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
         params := mux.Vars(r)
         id := params["POST_ID"]
 
         isDeleted, err := h.PostsRepo.Delete(id)
 
-        if nil != err || !isDeleted </span><span class="cov0" title="0">{
+        if nil != err || !isDeleted </span><span class="cov8" title="1">{
                 jsonError(w, http.StatusInternalServerError, "can't delete post, err")
                 return
         }</span>
 
-        <span class="cov0" title="0">fmt.Println("Delete post", id)
+        <span class="cov8" title="1">fmt.Println("Delete post", id)
 
         w.Header().Add("Content-Type", "application/json")
         w.Write([]byte(`{"message": "success"}`))</span>
 }
 
-func (h *PostsHandler) UpVote(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+func (h *PostsHandler) UpVote(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
         params := mux.Vars(r)
         postId := params["POST_ID"]
 
@@ -821,25 +821,25 @@ func (h *PostsHandler) UpVote(w http.ResponseWriter, r *http.Request) <span clas
                 return
         }</span>
 
-        <span class="cov0" title="0">data, err := h.PostsRepo.GetById(postId)
+        <span class="cov8" title="1">data, err := h.PostsRepo.GetById(postId)
 
         if nil != err </span><span class="cov0" title="0">{
                 jsonError(w, http.StatusInternalServerError, "can't get upvoted post")
                 return
         }</span>
 
-        <span class="cov0" title="0">postUpdatedDTO, err := h.DTOConverter.PostConvertToDTO(data)
+        <span class="cov8" title="1">postUpdatedDTO, err := h.DTOConverter.PostConvertToDTO(data)
         if err != nil </span><span class="cov0" title="0">{
                 fmt.Println("can't convert post to dto", err)
                 jsonError(w, http.StatusInternalServerError, "can't convert to dto")
                 return
         }</span>
 
-        <span class="cov0" title="0">w.Header().Add("Content-Type", "application/json")
+        <span class="cov8" title="1">w.Header().Add("Content-Type", "application/json")
         jsonResponse(w, postUpdatedDTO)</span>
 }
 
-func (h *PostsHandler) DownVote(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+func (h *PostsHandler) DownVote(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
         params := mux.Vars(r)
         postId := params["POST_ID"]
 
@@ -851,25 +851,25 @@ func (h *PostsHandler) DownVote(w http.ResponseWriter, r *http.Request) <span cl
                 return
         }</span>
 
-        <span class="cov0" title="0">data, err := h.PostsRepo.GetById(postId)
+        <span class="cov8" title="1">data, err := h.PostsRepo.GetById(postId)
 
         if nil != err </span><span class="cov0" title="0">{
                 jsonError(w, http.StatusInternalServerError, "can't get updated post")
                 return
         }</span>
 
-        <span class="cov0" title="0">postUpdatedDTO, err := h.DTOConverter.PostConvertToDTO(data)
+        <span class="cov8" title="1">postUpdatedDTO, err := h.DTOConverter.PostConvertToDTO(data)
         if err != nil </span><span class="cov0" title="0">{
                 fmt.Println("can't convert post to dto", err)
                 jsonError(w, http.StatusInternalServerError, "can't convert to dto")
                 return
         }</span>
 
-        <span class="cov0" title="0">w.Header().Add("Content-Type", "application/json")
+        <span class="cov8" title="1">w.Header().Add("Content-Type", "application/json")
         jsonResponse(w, postUpdatedDTO)</span>
 }
 
-func (h *PostsHandler) UnVote(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+func (h *PostsHandler) UnVote(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
         params := mux.Vars(r)
         postId := params["POST_ID"]
 
@@ -881,25 +881,25 @@ func (h *PostsHandler) UnVote(w http.ResponseWriter, r *http.Request) <span clas
                 return
         }</span>
 
-        <span class="cov0" title="0">data, err := h.PostsRepo.GetById(postId)
+        <span class="cov8" title="1">data, err := h.PostsRepo.GetById(postId)
 
         if nil != err </span><span class="cov0" title="0">{
                 jsonError(w, http.StatusInternalServerError, "can't get updated post")
                 return
         }</span>
 
-        <span class="cov0" title="0">postUpdatedDTO, err := h.DTOConverter.PostConvertToDTO(data)
+        <span class="cov8" title="1">postUpdatedDTO, err := h.DTOConverter.PostConvertToDTO(data)
         if err != nil </span><span class="cov0" title="0">{
                 fmt.Println("can't convert post to dto", err)
                 jsonError(w, http.StatusInternalServerError, "can't convert to dto")
                 return
         }</span>
 
-        <span class="cov0" title="0">w.Header().Add("Content-Type", "application/json")
+        <span class="cov8" title="1">w.Header().Add("Content-Type", "application/json")
         jsonResponse(w, postUpdatedDTO)</span>
 }
 
-func (h *PostsHandler) AddComment(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+func (h *PostsHandler) AddComment(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
 
         params := mux.Vars(r)
         postId := params["POST_ID"]
@@ -911,14 +911,14 @@ func (h *PostsHandler) AddComment(w http.ResponseWriter, r *http.Request) <span 
                 return
         }</span>
 
-        <span class="cov0" title="0">body, err := ioutil.ReadAll(r.Body)
+        <span class="cov8" title="1">body, err := ioutil.ReadAll(r.Body)
         defer r.Body.Close()
         if nil != err </span><span class="cov0" title="0">{
                 jsonError(w, http.StatusInternalServerError, "read request err")
                 return
         }</span>
 
-        <span class="cov0" title="0">commentRequest := &amp;CommentRequestDTO{}
+        <span class="cov8" title="1">commentRequest := &amp;CommentRequestDTO{}
         err = json.Unmarshal(body, commentRequest)
 
         if nil != err </span><span class="cov0" title="0">{
@@ -926,7 +926,7 @@ func (h *PostsHandler) AddComment(w http.ResponseWriter, r *http.Request) <span 
                 return
         }</span>
 
-        <span class="cov0" title="0">newComment := &amp;Comment{
+        <span class="cov8" title="1">newComment := &amp;Comment{
                 ID:      h.UUIDGetter.GetUUID(),
                 Body:    commentRequest.Comment,
                 PostId:  postId,
@@ -942,7 +942,7 @@ func (h *PostsHandler) AddComment(w http.ResponseWriter, r *http.Request) <span 
                 return
         }</span>
 
-        <span class="cov0" title="0">data, err := h.PostsRepo.GetById(postId)
+        <span class="cov8" title="1">data, err := h.PostsRepo.GetById(postId)
 
         if nil != err </span><span class="cov0" title="0">{
                 fmt.Println("can't get updated post", err)
@@ -950,18 +950,18 @@ func (h *PostsHandler) AddComment(w http.ResponseWriter, r *http.Request) <span 
                 return
         }</span>
 
-        <span class="cov0" title="0">postUpdatedDTO, err := h.DTOConverter.PostConvertToDTO(data)
+        <span class="cov8" title="1">postUpdatedDTO, err := h.DTOConverter.PostConvertToDTO(data)
         if err != nil </span><span class="cov0" title="0">{
                 fmt.Println("can't convert post to dto", err)
                 jsonError(w, http.StatusInternalServerError, "can't convert to dto")
                 return
         }</span>
 
-        <span class="cov0" title="0">w.Header().Add("Content-Type", "application/json")
+        <span class="cov8" title="1">w.Header().Add("Content-Type", "application/json")
         jsonResponse(w, postUpdatedDTO)</span>
 }
 
-func (h *PostsHandler) DeleteComment(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+func (h *PostsHandler) DeleteComment(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
         params := mux.Vars(r)
         postId := params["POST_ID"]
         commentId := params["COMMENT_ID"]
@@ -973,7 +973,7 @@ func (h *PostsHandler) DeleteComment(w http.ResponseWriter, r *http.Request) <sp
                 return
         }</span>
 
-        <span class="cov0" title="0">fmt.Println("Delete comment")
+        <span class="cov8" title="1">fmt.Println("Delete comment")
 
         data, err := h.PostsRepo.GetById(postId)
 
@@ -982,14 +982,14 @@ func (h *PostsHandler) DeleteComment(w http.ResponseWriter, r *http.Request) <sp
                 return
         }</span>
 
-        <span class="cov0" title="0">postUpdatedDTO, err := h.DTOConverter.PostConvertToDTO(data)
+        <span class="cov8" title="1">postUpdatedDTO, err := h.DTOConverter.PostConvertToDTO(data)
         if err != nil </span><span class="cov0" title="0">{
                 fmt.Println("can't convert post to dto", err)
                 jsonError(w, http.StatusInternalServerError, "can't convert to dto")
                 return
         }</span>
 
-        <span class="cov0" title="0">w.Header().Add("Content-Type", "application/json")
+        <span class="cov8" title="1">w.Header().Add("Content-Type", "application/json")
         jsonResponse(w, postUpdatedDTO)</span>
 }
 </pre>
@@ -1045,7 +1045,7 @@ func (mr *MockPostRepoIMockRecorder) Add(post interface{}) *gomock.Call <span cl
 }</span>
 
 // Delete mocks base method.
-func (m *MockPostRepoI) Delete(id string) (bool, error) <span class="cov0" title="0">{
+func (m *MockPostRepoI) Delete(id string) (bool, error) <span class="cov8" title="1">{
         m.ctrl.T.Helper()
         ret := m.ctrl.Call(m, "Delete", id)
         ret0, _ := ret[0].(bool)
@@ -1054,13 +1054,13 @@ func (m *MockPostRepoI) Delete(id string) (bool, error) <span class="cov0" title
 }</span>
 
 // Delete indicates an expected call of Delete.
-func (mr *MockPostRepoIMockRecorder) Delete(id interface{}) *gomock.Call <span class="cov0" title="0">{
+func (mr *MockPostRepoIMockRecorder) Delete(id interface{}) *gomock.Call <span class="cov8" title="1">{
         mr.mock.ctrl.T.Helper()
         return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockPostRepoI)(nil).Delete), id)
 }</span>
 
 // DownVote mocks base method.
-func (m *MockPostRepoI) DownVote(id string) (bool, error) <span class="cov0" title="0">{
+func (m *MockPostRepoI) DownVote(id string) (bool, error) <span class="cov8" title="1">{
         m.ctrl.T.Helper()
         ret := m.ctrl.Call(m, "DownVote", id)
         ret0, _ := ret[0].(bool)
@@ -1069,7 +1069,7 @@ func (m *MockPostRepoI) DownVote(id string) (bool, error) <span class="cov0" tit
 }</span>
 
 // DownVote indicates an expected call of DownVote.
-func (mr *MockPostRepoIMockRecorder) DownVote(id interface{}) *gomock.Call <span class="cov0" title="0">{
+func (mr *MockPostRepoIMockRecorder) DownVote(id interface{}) *gomock.Call <span class="cov8" title="1">{
         mr.mock.ctrl.T.Helper()
         return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DownVote", reflect.TypeOf((*MockPostRepoI)(nil).DownVote), id)
 }</span>
@@ -1135,7 +1135,7 @@ func (mr *MockPostRepoIMockRecorder) GetByUserLogin(userLogin interface{}) *gomo
 }</span>
 
 // UpVote mocks base method.
-func (m *MockPostRepoI) UpVote(id string) (bool, error) <span class="cov0" title="0">{
+func (m *MockPostRepoI) UpVote(id string) (bool, error) <span class="cov8" title="1">{
         m.ctrl.T.Helper()
         ret := m.ctrl.Call(m, "UpVote", id)
         ret0, _ := ret[0].(bool)
@@ -1144,7 +1144,7 @@ func (m *MockPostRepoI) UpVote(id string) (bool, error) <span class="cov0" title
 }</span>
 
 // UpVote indicates an expected call of UpVote.
-func (mr *MockPostRepoIMockRecorder) UpVote(id interface{}) *gomock.Call <span class="cov0" title="0">{
+func (mr *MockPostRepoIMockRecorder) UpVote(id interface{}) *gomock.Call <span class="cov8" title="1">{
         mr.mock.ctrl.T.Helper()
         return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpVote", reflect.TypeOf((*MockPostRepoI)(nil).UpVote), id)
 }</span>
@@ -1168,12 +1168,12 @@ func NewMockCommentRepoI(ctrl *gomock.Controller) *MockCommentRepoI <span class=
 }</span>
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockCommentRepoI) EXPECT() *MockCommentRepoIMockRecorder <span class="cov0" title="0">{
+func (m *MockCommentRepoI) EXPECT() *MockCommentRepoIMockRecorder <span class="cov8" title="1">{
         return m.recorder
 }</span>
 
 // Add mocks base method.
-func (m *MockCommentRepoI) Add(comment *Comment) (*string, error) <span class="cov0" title="0">{
+func (m *MockCommentRepoI) Add(comment *Comment) (*string, error) <span class="cov8" title="1">{
         m.ctrl.T.Helper()
         ret := m.ctrl.Call(m, "Add", comment)
         ret0, _ := ret[0].(*string)
@@ -1182,13 +1182,13 @@ func (m *MockCommentRepoI) Add(comment *Comment) (*string, error) <span class="c
 }</span>
 
 // Add indicates an expected call of Add.
-func (mr *MockCommentRepoIMockRecorder) Add(comment interface{}) *gomock.Call <span class="cov0" title="0">{
+func (mr *MockCommentRepoIMockRecorder) Add(comment interface{}) *gomock.Call <span class="cov8" title="1">{
         mr.mock.ctrl.T.Helper()
         return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Add", reflect.TypeOf((*MockCommentRepoI)(nil).Add), comment)
 }</span>
 
 // Delete mocks base method.
-func (m *MockCommentRepoI) Delete(id string) (bool, error) <span class="cov0" title="0">{
+func (m *MockCommentRepoI) Delete(id string) (bool, error) <span class="cov8" title="1">{
         m.ctrl.T.Helper()
         ret := m.ctrl.Call(m, "Delete", id)
         ret0, _ := ret[0].(bool)
@@ -1197,7 +1197,7 @@ func (m *MockCommentRepoI) Delete(id string) (bool, error) <span class="cov0" ti
 }</span>
 
 // Delete indicates an expected call of Delete.
-func (mr *MockCommentRepoIMockRecorder) Delete(id interface{}) *gomock.Call <span class="cov0" title="0">{
+func (mr *MockCommentRepoIMockRecorder) Delete(id interface{}) *gomock.Call <span class="cov8" title="1">{
         mr.mock.ctrl.T.Helper()
         return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockCommentRepoI)(nil).Delete), id)
 }</span>
