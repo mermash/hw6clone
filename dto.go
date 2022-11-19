@@ -140,7 +140,7 @@ func (converter *DTOConverter) PostsConvertToDTO(data []*PostComplexData) ([]*Po
 			},
 			Category:         post.Category.Name,
 			Comments:         []*CommentDTO{},
-			Created:          post.Created,
+			Created:          post.Post.Created,
 			Score:            post.Score,
 			Text:             post.Description,
 			Title:            post.Title,

@@ -197,8 +197,6 @@ func (h *PostsHandler) Add(w http.ResponseWriter, r *http.Request) {
 
 	lastID, err := h.PostsRepo.Add(newPost)
 
-	fmt.Println("add post id", lastID, *lastID)
-
 	if nil != err {
 		fmt.Println("can't add post", err)
 		jsonError(w, http.StatusInternalServerError, "can't add post")
@@ -329,32 +327,26 @@ func (h *PostsHandler) UnVote(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *PostsHandler) AddComment(w http.ResponseWriter, r *http.Request) {
-
 	params := mux.Vars(r)
 	postId := params["POST_ID"]
-
 	sess, err := SessionFromContext(r.Context())
 	if err != nil {
 		fmt.Println("err: ", err)
 		jsonError(w, http.StatusInternalServerError, "can't get session from context")
 		return
 	}
-
 	body, err := ioutil.ReadAll(r.Body)
 	defer r.Body.Close()
 	if nil != err {
 		jsonError(w, http.StatusInternalServerError, "read request err")
 		return
 	}
-
 	commentRequest := &CommentRequestDTO{}
 	err = json.Unmarshal(body, commentRequest)
-
 	if nil != err {
 		jsonError(w, http.StatusInternalServerError, "can't unpack payload")
 		return
 	}
-
 	newComment := &Comment{
 		ID:      h.UUIDGetter.GetUUID(),
 		Body:    commentRequest.Comment,
@@ -362,30 +354,24 @@ func (h *PostsHandler) AddComment(w http.ResponseWriter, r *http.Request) {
 		UserId:  sess.UserID,
 		Created: h.TimeGetter.GetCreated(),
 	}
-
 	_, err = h.CommentRepo.Add(newComment)
-
 	if nil != err {
 		fmt.Println("can't add comment", err)
 		jsonError(w, http.StatusInternalServerError, "can't add comment")
 		return
 	}
-
 	data, err := h.PostsRepo.GetById(postId)
-
 	if nil != err {
 		fmt.Println("can't get updated post", err)
 		jsonError(w, http.StatusInternalServerError, "can't get by id updated post")
 		return
 	}
-
 	postUpdatedDTO, err := h.DTOConverter.PostConvertToDTO(data)
 	if err != nil {
 		fmt.Println("can't convert post to dto", err)
 		jsonError(w, http.StatusInternalServerError, "can't convert to dto")
 		return
 	}
-
 	w.Header().Add("Content-Type", "application/json")
 	jsonResponse(w, postUpdatedDTO)
 }
@@ -394,30 +380,23 @@ func (h *PostsHandler) DeleteComment(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	postId := params["POST_ID"]
 	commentId := params["COMMENT_ID"]
-
 	isDeleted, err := h.CommentRepo.Delete(commentId)
-
 	if nil != err || !isDeleted {
 		jsonError(w, http.StatusInternalServerError, "can't delete comment, err")
 		return
 	}
-
 	fmt.Println("Delete comment")
-
 	data, err := h.PostsRepo.GetById(postId)
-
 	if nil != err {
 		jsonError(w, http.StatusInternalServerError, "can't get updated post")
 		return
 	}
-
 	postUpdatedDTO, err := h.DTOConverter.PostConvertToDTO(data)
 	if err != nil {
 		fmt.Println("can't convert post to dto", err)
 		jsonError(w, http.StatusInternalServerError, "can't convert to dto")
 		return
 	}
-
 	w.Header().Add("Content-Type", "application/json")
 	jsonResponse(w, postUpdatedDTO)
 }

@@ -6,4 +6,5 @@ COPY . /home/app
 
 WORKDIR /home/app
 
-CMD go run main.go
+CMD  go build && ./hw5_redditclone
+#CMD go run .

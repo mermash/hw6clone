@@ -159,3 +159,70 @@ func (mr *MockUserRepoIMockRecorder) GetByLogin(login interface{}) *gomock.Call 
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByLogin", reflect.TypeOf((*MockUserRepoI)(nil).GetByLogin), login)
 }
+
+// MockUserUtilsI is a mock of UserUtilsI interface.
+type MockUserUtilsI struct {
+	ctrl     *gomock.Controller
+	recorder *MockUserUtilsIMockRecorder
+}
+
+// MockUserUtilsIMockRecorder is the mock recorder for MockUserUtilsI.
+type MockUserUtilsIMockRecorder struct {
+	mock *MockUserUtilsI
+}
+
+// NewMockUserUtilsI creates a new mock instance.
+func NewMockUserUtilsI(ctrl *gomock.Controller) *MockUserUtilsI {
+	mock := &MockUserUtilsI{ctrl: ctrl}
+	mock.recorder = &MockUserUtilsIMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockUserUtilsI) EXPECT() *MockUserUtilsIMockRecorder {
+	return m.recorder
+}
+
+// CheckPasswordHash mocks base method.
+func (m *MockUserUtilsI) CheckPasswordHash(passwordReceived, hash string) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CheckPasswordHash", passwordReceived, hash)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// CheckPasswordHash indicates an expected call of CheckPasswordHash.
+func (mr *MockUserUtilsIMockRecorder) CheckPasswordHash(passwordReceived, hash interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckPasswordHash", reflect.TypeOf((*MockUserUtilsI)(nil).CheckPasswordHash), passwordReceived, hash)
+}
+
+// GenerateJWT mocks base method.
+func (m *MockUserUtilsI) GenerateJWT(user *User, sessID string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GenerateJWT", user, sessID)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GenerateJWT indicates an expected call of GenerateJWT.
+func (mr *MockUserUtilsIMockRecorder) GenerateJWT(user, sessID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateJWT", reflect.TypeOf((*MockUserUtilsI)(nil).GenerateJWT), user, sessID)
+}
+
+// GeneratePasswordHash mocks base method.
+func (m *MockUserUtilsI) GeneratePasswordHash(password string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GeneratePasswordHash", password)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GeneratePasswordHash indicates an expected call of GeneratePasswordHash.
+func (mr *MockUserUtilsIMockRecorder) GeneratePasswordHash(password interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GeneratePasswordHash", reflect.TypeOf((*MockUserUtilsI)(nil).GeneratePasswordHash), password)
+}

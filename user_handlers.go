@@ -7,10 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
-	"time"
 
-	"github.com/golang-jwt/jwt"
 	"github.com/gorilla/mux"
 )
 
@@ -27,11 +24,20 @@ type UserRepoI interface {
 	Create(user *User) (*string, error)
 }
 
+type UserUtilsI interface {
+	GenerateJWT(user *User, sessID string) (string, error)
+	GeneratePasswordHash(password string) (string, error)
+	CheckPasswordHash(passwordReceived string, hash string) bool
+}
+
 type UserHandler struct {
 	SessionManager SessionManagerI
 	UserRepo       UserRepoI
 	PostsRepo      PostRepoI
 	DTOConverter   DTOConverterI
+	UUIDGetter     UUIDGetterI
+	TimeGetter     TimeGetterI
+	UserUtils      UserUtilsI
 	Logger         *log.Logger
 }
 
@@ -44,30 +50,11 @@ func NewUserHandler(db *sql.DB, sm SessionManagerI) *UserHandler {
 			CommentRepo: NewCommentRepo(db),
 			VoteRepo:    NewVoteRepo(db),
 		},
-		Logger: nil,
+		UUIDGetter: &UUIDGetter{},
+		TimeGetter: &TimeGetter{},
+		UserUtils:  &UserUtils{},
+		Logger:     nil,
 	}
-}
-
-func generateJWT(user *User, sessID string) (string, error) {
-	var signingKey = []byte(os.Getenv("SECRET_KEY"))
-	data := &SessionJWTClaims{
-		User: UserJWtClaims{
-			UserName: user.Login,
-			ID:       user.ID,
-			SessID:   sessID,
-		},
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(90 * 24 * time.Hour).Unix(),
-			IssuedAt:  time.Now().Unix(),
-		},
-	}
-	tokenString, err := jwt.NewWithClaims(jwt.SigningMethodHS256, data).SignedString(signingKey)
-
-	if nil != err {
-		fmt.Printf("Error during generate token: %s", err.Error())
-		return "", err
-	}
-	return tokenString, nil
 }
 
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
@@ -85,15 +72,17 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, http.StatusInternalServerError, "can't unpack payload")
 		return
 	}
-	passwordHash, err := GeneratePasswordHash(registerReuqest.Password)
+	passwordHash, err := h.UserUtils.GeneratePasswordHash(registerReuqest.Password)
 	if nil != err {
 		fmt.Println("can't generate a hash for the password: ", err.Error())
 		jsonError(w, http.StatusInternalServerError, "can't generate a hash for the password")
 		return
 	}
 	user := &User{
+		ID:       h.UUIDGetter.GetUUID(),
 		Login:    registerReuqest.UserName,
 		Password: passwordHash,
+		Created:  h.TimeGetter.GetCreated(),
 	}
 	lastID, err := h.UserRepo.Create(user)
 	if nil != err {
@@ -117,7 +106,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenString, err := generateJWT(userAdded, sess.ID)
+	tokenString, err := h.UserUtils.GenerateJWT(userAdded, sess.ID)
 	if nil != err {
 		fmt.Println("can't generate jwt token: ", err.Error())
 		jsonError(w, http.StatusInternalServerError, "can't generate jwt token")
@@ -152,8 +141,8 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, http.StatusInternalServerError, "user not found")
 		return
 	}
-	if !CheckPasswordHash(loginRequest.Password, userStored.Password) {
-		fmt.Println("invalid password: ", err.Error())
+	if !h.UserUtils.CheckPasswordHash(loginRequest.Password, userStored.Password) {
+		fmt.Println("invalid password")
 		jsonError(w, http.StatusUnauthorized, "invalid password")
 		return
 	}
@@ -166,7 +155,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	validToken, err := generateJWT(userStored, sess.ID)
+	validToken, err := h.UserUtils.GenerateJWT(userStored, sess.ID)
 	if nil != err {
 		fmt.Println("can't generate jwt token: ", err.Error())
 		jsonError(w, http.StatusInternalServerError, "can't generate jwt token")

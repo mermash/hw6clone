@@ -346,6 +346,54 @@ func TestAdd(t *testing.T) {
 		t.Errorf("expected 500 status code, got : %d", resp.StatusCode)
 		return
 	}
+
+	//add error
+	dictionaryRepoMock.EXPECT().GetCategoryByName(categoryName).Return(category, nil)
+	uuidGetterMock.EXPECT().GetUUID().Return(lastID)
+	timeGetterMock.EXPECT().GetCreated().Return("2022-11-09T19:51:42Z")
+	postsRepoMock.EXPECT().Add(post).Return(nil, fmt.Errorf("add error"))
+	req = httptest.NewRequest("POST", "/api/posts", strings.NewReader(reqBody))
+	w = httptest.NewRecorder()
+	ctx = context.WithValue(req.Context(), sessionKey, sess)
+	service.Add(w, req.WithContext(ctx))
+	resp = w.Result()
+	if resp.StatusCode != http.StatusInternalServerError {
+		t.Errorf("expected 500 status code, got : %d", resp.StatusCode)
+		return
+	}
+
+	//get by id error
+	postsRepoMock.EXPECT().Add(post).Return(&lastID, nil)
+	postsRepoMock.EXPECT().GetById(lastID).Return(nil, fmt.Errorf("get by id error"))
+	dictionaryRepoMock.EXPECT().GetCategoryByName(categoryName).Return(category, nil)
+	timeGetterMock.EXPECT().GetCreated().Return("2022-11-09T19:51:42Z")
+	uuidGetterMock.EXPECT().GetUUID().Return(lastID)
+	req = httptest.NewRequest("POST", "/api/posts", strings.NewReader(reqBody))
+	w = httptest.NewRecorder()
+	ctx = context.WithValue(req.Context(), sessionKey, sess)
+	service.Add(w, req.WithContext(ctx))
+	resp = w.Result()
+	if resp.StatusCode != http.StatusInternalServerError {
+		t.Errorf("expected 500 status code, got : %d", resp.StatusCode)
+		return
+	}
+
+	//converter error
+	postsRepoMock.EXPECT().Add(post).Return(&lastID, nil)
+	postsRepoMock.EXPECT().GetById(lastID).Return(multipleComplexData[0], nil)
+	dictionaryRepoMock.EXPECT().GetCategoryByName(categoryName).Return(category, nil)
+	dtoConverterMock.EXPECT().PostConvertToDTO(multipleComplexData[0]).Return(nil, fmt.Errorf("converter error"))
+	timeGetterMock.EXPECT().GetCreated().Return("2022-11-09T19:51:42Z")
+	uuidGetterMock.EXPECT().GetUUID().Return(lastID)
+	req = httptest.NewRequest("POST", "/api/posts", strings.NewReader(reqBody))
+	w = httptest.NewRecorder()
+	ctx = context.WithValue(req.Context(), sessionKey, sess)
+	service.Add(w, req.WithContext(ctx))
+	resp = w.Result()
+	if resp.StatusCode != http.StatusInternalServerError {
+		t.Errorf("expected 500 status code, got : %d", resp.StatusCode)
+		return
+	}
 }
 
 func TestDelete(t *testing.T) {
@@ -371,9 +419,7 @@ func TestDelete(t *testing.T) {
 	req := httptest.NewRequest("DELETE", "/api/post/dc1e2f25-76a5-4aac-9212-96e2121c16f1", nil)
 	req = mux.SetURLVars(req, urlVars)
 	w := httptest.NewRecorder()
-
 	service.Delete(w, req)
-
 	resp := w.Result()
 	body, _ := ioutil.ReadAll(resp.Body)
 	bodyStr := string(body)
@@ -387,9 +433,7 @@ func TestDelete(t *testing.T) {
 	req = httptest.NewRequest("DELETE", "/api/post/dc1e2f25-76a5-4aac-9212-96e2121c16f1", nil)
 	req = mux.SetURLVars(req, urlVars)
 	w = httptest.NewRecorder()
-
 	service.Delete(w, req)
-
 	resp = w.Result()
 	if resp.StatusCode != http.StatusInternalServerError {
 		t.Errorf("expected 500 statuscode; got %d", resp.StatusCode)
@@ -430,6 +474,45 @@ func TestUpVote(t *testing.T) {
 		t.Errorf("it's not matched; want: %#v; have: %#v", singleExpectation, bodyStr)
 		return
 	}
+
+	//query error
+	postsRepoMock.EXPECT().UpVote(postId).Return(false, fmt.Errorf("upvote db_error"))
+	req = httptest.NewRequest("GET", "/api/post/dc1e2f25-76a5-4aac-9212-96e2121c16f1/upvote", nil)
+	req = mux.SetURLVars(req, urlVars)
+	w = httptest.NewRecorder()
+	service.UpVote(w, req)
+	resp = w.Result()
+	if resp.StatusCode != http.StatusInternalServerError {
+		t.Errorf("expected 500 statuscode; got %d", resp.StatusCode)
+		return
+	}
+
+	//get by id error
+	postsRepoMock.EXPECT().UpVote(postId).Return(true, nil)
+	postsRepoMock.EXPECT().GetById(postId).Return(nil, fmt.Errorf("get by id error"))
+	req = httptest.NewRequest("GET", "/api/post/dc1e2f25-76a5-4aac-9212-96e2121c16f1/upvote", nil)
+	req = mux.SetURLVars(req, urlVars)
+	w = httptest.NewRecorder()
+	service.UpVote(w, req)
+	resp = w.Result()
+	if resp.StatusCode != http.StatusInternalServerError {
+		t.Errorf("expected 500 statuscode; got %d", resp.StatusCode)
+		return
+	}
+
+	//converter error
+	postsRepoMock.EXPECT().UpVote(postId).Return(true, nil)
+	postsRepoMock.EXPECT().GetById(postId).Return(multipleComplexData[0], nil)
+	dtoConverterMock.EXPECT().PostConvertToDTO(multipleComplexData[0]).Return(nil, fmt.Errorf("cconverter error"))
+	req = httptest.NewRequest("GET", "/api/post/dc1e2f25-76a5-4aac-9212-96e2121c16f1/upvote", nil)
+	req = mux.SetURLVars(req, urlVars)
+	w = httptest.NewRecorder()
+	service.UpVote(w, req)
+	resp = w.Result()
+	if resp.StatusCode != http.StatusInternalServerError {
+		t.Errorf("expected 500 statuscode; got %d", resp.StatusCode)
+		return
+	}
 }
 
 func TestDownVote(t *testing.T) {
@@ -465,6 +548,45 @@ func TestDownVote(t *testing.T) {
 		t.Errorf("it's not matched; want: %#v; have: %#v", singleExpectation, bodyStr)
 		return
 	}
+
+	//query errir
+	postsRepoMock.EXPECT().DownVote(postId).Return(false, fmt.Errorf("downvote query error"))
+	req = httptest.NewRequest("GET", "/api/post/dc1e2f25-76a5-4aac-9212-96e2121c16f1/downvote", nil)
+	req = mux.SetURLVars(req, urlVars)
+	w = httptest.NewRecorder()
+	service.DownVote(w, req)
+	resp = w.Result()
+	if resp.StatusCode != http.StatusInternalServerError {
+		t.Errorf("expected 500 statuscode; got %d", resp.StatusCode)
+		return
+	}
+
+	//query error
+	postsRepoMock.EXPECT().DownVote(postId).Return(true, nil)
+	postsRepoMock.EXPECT().GetById(postId).Return(nil, fmt.Errorf("get by id error"))
+	req = httptest.NewRequest("GET", "/api/post/dc1e2f25-76a5-4aac-9212-96e2121c16f1/downvote", nil)
+	req = mux.SetURLVars(req, urlVars)
+	w = httptest.NewRecorder()
+	service.DownVote(w, req)
+	resp = w.Result()
+	if resp.StatusCode != http.StatusInternalServerError {
+		t.Errorf("expected 500 statuscode; got %d", resp.StatusCode)
+		return
+	}
+
+	//converter error
+	postsRepoMock.EXPECT().DownVote(postId).Return(true, nil)
+	postsRepoMock.EXPECT().GetById(postId).Return(multipleComplexData[0], nil)
+	dtoConverterMock.EXPECT().PostConvertToDTO(multipleComplexData[0]).Return(nil, fmt.Errorf("converter error"))
+	req = httptest.NewRequest("GET", "/api/post/dc1e2f25-76a5-4aac-9212-96e2121c16f1/downvote", nil)
+	req = mux.SetURLVars(req, urlVars)
+	w = httptest.NewRecorder()
+	service.DownVote(w, req)
+	resp = w.Result()
+	if resp.StatusCode != http.StatusInternalServerError {
+		t.Errorf("expected 500 statuscode; got %d", resp.StatusCode)
+		return
+	}
 }
 
 func TestUnVote(t *testing.T) {
@@ -498,6 +620,45 @@ func TestUnVote(t *testing.T) {
 	bodyStr := string(body)
 	if !reflect.DeepEqual(bodyStr, singleExpectation) {
 		t.Errorf("it's not matched; want: %#v; have: %#v", singleExpectation, bodyStr)
+		return
+	}
+
+	//query error
+	postsRepoMock.EXPECT().DownVote(postId).Return(false, fmt.Errorf("unvote query error"))
+	req = httptest.NewRequest("GET", "/api/post/dc1e2f25-76a5-4aac-9212-96e2121c16f1/unvote", nil)
+	req = mux.SetURLVars(req, urlVars)
+	w = httptest.NewRecorder()
+	service.UnVote(w, req)
+	resp = w.Result()
+	if resp.StatusCode != http.StatusInternalServerError {
+		t.Errorf("expected 500 statuscode; got %d", resp.StatusCode)
+		return
+	}
+
+	//get by id error
+	postsRepoMock.EXPECT().DownVote(postId).Return(true, nil)
+	postsRepoMock.EXPECT().GetById(postId).Return(nil, fmt.Errorf("get by id error"))
+	req = httptest.NewRequest("GET", "/api/post/dc1e2f25-76a5-4aac-9212-96e2121c16f1/unvote", nil)
+	req = mux.SetURLVars(req, urlVars)
+	w = httptest.NewRecorder()
+	service.UnVote(w, req)
+	resp = w.Result()
+	if resp.StatusCode != http.StatusInternalServerError {
+		t.Errorf("expected 500 statuscode; got %d", resp.StatusCode)
+		return
+	}
+
+	//converter error
+	postsRepoMock.EXPECT().DownVote(postId).Return(true, nil)
+	postsRepoMock.EXPECT().GetById(postId).Return(multipleComplexData[0], nil)
+	dtoConverterMock.EXPECT().PostConvertToDTO(multipleComplexData[0]).Return(nil, fmt.Errorf("converter error"))
+	req = httptest.NewRequest("GET", "/api/post/dc1e2f25-76a5-4aac-9212-96e2121c16f1/unvote", nil)
+	req = mux.SetURLVars(req, urlVars)
+	w = httptest.NewRecorder()
+	service.UnVote(w, req)
+	resp = w.Result()
+	if resp.StatusCode != http.StatusInternalServerError {
+		t.Errorf("expected 500 statuscode; got %d", resp.StatusCode)
 		return
 	}
 }
@@ -553,6 +714,54 @@ func TestAddComment(t *testing.T) {
 		t.Errorf("it's not matched; want: %#v; have: %#v", singleExpectationWithComments, bodyStr)
 		return
 	}
+
+	//query error
+	timeGetterMock.EXPECT().GetCreated().Return(newComment.Created)
+	uuidGetterMock.EXPECT().GetUUID().Return(lastID)
+	commentRepoMock.EXPECT().Add(newComment).Return(nil, fmt.Errorf("add query error"))
+	req = httptest.NewRequest("POST", "/api/post/dc1e2f25-76a5-4aac-9212-96e2121c16f1", strings.NewReader(reqBody))
+	w = httptest.NewRecorder()
+	req = mux.SetURLVars(req, urlVars)
+	ctx = context.WithValue(req.Context(), sessionKey, sess)
+	service.AddComment(w, req.WithContext(ctx))
+	resp = w.Result()
+	if resp.StatusCode != http.StatusInternalServerError {
+		t.Errorf("expected 500 statuscode; got %d", resp.StatusCode)
+		return
+	}
+
+	//get by id error
+	timeGetterMock.EXPECT().GetCreated().Return(newComment.Created)
+	uuidGetterMock.EXPECT().GetUUID().Return(lastID)
+	commentRepoMock.EXPECT().Add(newComment).Return(&lastID, nil)
+	postsRepoMock.EXPECT().GetById(newComment.PostId).Return(nil, fmt.Errorf("get by id error"))
+	req = httptest.NewRequest("POST", "/api/post/dc1e2f25-76a5-4aac-9212-96e2121c16f1", strings.NewReader(reqBody))
+	w = httptest.NewRecorder()
+	req = mux.SetURLVars(req, urlVars)
+	ctx = context.WithValue(req.Context(), sessionKey, sess)
+	service.AddComment(w, req.WithContext(ctx))
+	resp = w.Result()
+	if resp.StatusCode != http.StatusInternalServerError {
+		t.Errorf("expected 500 statuscode; got %d", resp.StatusCode)
+		return
+	}
+
+	//converter error
+	timeGetterMock.EXPECT().GetCreated().Return(newComment.Created)
+	uuidGetterMock.EXPECT().GetUUID().Return(lastID)
+	commentRepoMock.EXPECT().Add(newComment).Return(&lastID, nil)
+	postsRepoMock.EXPECT().GetById(newComment.PostId).Return(multipleComplexData[0], nil)
+	dtoConverterMock.EXPECT().PostConvertToDTO(multipleComplexData[0]).Return(nil, fmt.Errorf("converter error"))
+	req = httptest.NewRequest("POST", "/api/post/dc1e2f25-76a5-4aac-9212-96e2121c16f1", strings.NewReader(reqBody))
+	w = httptest.NewRecorder()
+	req = mux.SetURLVars(req, urlVars)
+	ctx = context.WithValue(req.Context(), sessionKey, sess)
+	service.AddComment(w, req.WithContext(ctx))
+	resp = w.Result()
+	if resp.StatusCode != http.StatusInternalServerError {
+		t.Errorf("expected 500 statuscode; got %d", resp.StatusCode)
+		return
+	}
 }
 
 func TestDeleteComment(t *testing.T) {
@@ -579,21 +788,62 @@ func TestDeleteComment(t *testing.T) {
 		"COMMENT_ID": commentID,
 	}
 
+	//success
 	commentRepoMock.EXPECT().Delete(commentID).Return(true, nil)
 	postsRepoMock.EXPECT().GetById(postID).Return(multipleComplexData[0], nil)
 	dtoConverterMock.EXPECT().PostConvertToDTO(multipleComplexData[0]).Return(postsDTO[0], nil)
-
 	req := httptest.NewRequest("DELETE", "/api/post/dc1e2f25-76a5-4aac-9212-96e2121c16f1/dbed62a8-79c5-43bd-9594-92cddeb261ac", nil)
 	req = mux.SetURLVars(req, urlVars)
 	ctx := context.WithValue(req.Context(), sessionKey, sess)
 	w := httptest.NewRecorder()
 	service.DeleteComment(w, req.WithContext(ctx))
-
 	resp := w.Result()
 	body, _ := ioutil.ReadAll(resp.Body)
 	bodyStr := string(body)
 	if !reflect.DeepEqual(bodyStr, singleExpectation) {
 		t.Errorf("it's not match; want: %#v; have: %#v", singleExpectation, bodyStr)
+		return
+	}
+
+	//query error
+	commentRepoMock.EXPECT().Delete(commentID).Return(false, fmt.Errorf("delete query error"))
+	req = httptest.NewRequest("DELETE", "/api/post/dc1e2f25-76a5-4aac-9212-96e2121c16f1/dbed62a8-79c5-43bd-9594-92cddeb261ac", nil)
+	req = mux.SetURLVars(req, urlVars)
+	ctx = context.WithValue(req.Context(), sessionKey, sess)
+	w = httptest.NewRecorder()
+	service.DeleteComment(w, req.WithContext(ctx))
+	resp = w.Result()
+	if resp.StatusCode != http.StatusInternalServerError {
+		t.Errorf("expected 500 statuscode; got %d", resp.StatusCode)
+		return
+	}
+
+	//get by id error
+	commentRepoMock.EXPECT().Delete(commentID).Return(true, nil)
+	postsRepoMock.EXPECT().GetById(postID).Return(nil, fmt.Errorf("get by id error"))
+	req = httptest.NewRequest("DELETE", "/api/post/dc1e2f25-76a5-4aac-9212-96e2121c16f1/dbed62a8-79c5-43bd-9594-92cddeb261ac", nil)
+	req = mux.SetURLVars(req, urlVars)
+	ctx = context.WithValue(req.Context(), sessionKey, sess)
+	w = httptest.NewRecorder()
+	service.DeleteComment(w, req.WithContext(ctx))
+	resp = w.Result()
+	if resp.StatusCode != http.StatusInternalServerError {
+		t.Errorf("expected 500 statuscode; got %d", resp.StatusCode)
+		return
+	}
+
+	//converter error
+	commentRepoMock.EXPECT().Delete(commentID).Return(true, nil)
+	postsRepoMock.EXPECT().GetById(postID).Return(multipleComplexData[0], nil)
+	dtoConverterMock.EXPECT().PostConvertToDTO(multipleComplexData[0]).Return(nil, fmt.Errorf("converter error"))
+	req = httptest.NewRequest("DELETE", "/api/post/dc1e2f25-76a5-4aac-9212-96e2121c16f1/dbed62a8-79c5-43bd-9594-92cddeb261ac", nil)
+	req = mux.SetURLVars(req, urlVars)
+	ctx = context.WithValue(req.Context(), sessionKey, sess)
+	w = httptest.NewRecorder()
+	service.DeleteComment(w, req.WithContext(ctx))
+	resp = w.Result()
+	if resp.StatusCode != http.StatusInternalServerError {
+		t.Errorf("expected 500 statuscode; got %d", resp.StatusCode)
 		return
 	}
 }

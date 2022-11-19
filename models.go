@@ -15,6 +15,7 @@ type User struct {
 	ID       string
 	Login    string
 	Password string
+	Created  string
 }
 
 type Comment struct {

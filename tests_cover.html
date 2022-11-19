@@ -65,7 +65,7 @@
 				
 				<option value="file4">hw5_redditclone/main.go (0.0%)</option>
 				
-				<option value="file5">hw5_redditclone/posts_handlers.go (66.8%)</option>
+				<option value="file5">hw5_redditclone/posts_handlers.go (91.3%)</option>
 				
 				<option value="file6">hw5_redditclone/posts_handlers_mock.go (80.9%)</option>
 				
@@ -75,11 +75,11 @@
 				
 				<option value="file9">hw5_redditclone/session_manager_jwt.go (0.0%)</option>
 				
-				<option value="file10">hw5_redditclone/user_handlers.go (8.2%)</option>
+				<option value="file10">hw5_redditclone/user_handlers.go (85.6%)</option>
 				
-				<option value="file11">hw5_redditclone/user_handlers_mock.go (5.5%)</option>
+				<option value="file11">hw5_redditclone/user_handlers_mock.go (75.9%)</option>
 				
-				<option value="file12">hw5_redditclone/user_repo.go (0.0%)</option>
+				<option value="file12">hw5_redditclone/user_repo.go (100.0%)</option>
 				
 				<option value="file13">hw5_redditclone/user_utils.go (0.0%)</option>
 				
@@ -456,7 +456,7 @@ func (converter *DTOConverter) PostsConvertToDTO(data []*PostComplexData) ([]*Po
                         },
                         Category:         post.Category.Name,
                         Comments:         []*CommentDTO{},
-                        Created:          post.Created,
+                        Created:          post.Post.Created,
                         Score:            post.Score,
                         Text:             post.Description,
                         Title:            post.Title,
@@ -770,23 +770,21 @@ func (h *PostsHandler) Add(w http.ResponseWriter, r *http.Request) <span class="
 
         lastID, err := h.PostsRepo.Add(newPost)
 
-        fmt.Println("add post id", lastID, *lastID)
-
-        if nil != err </span><span class="cov0" title="0">{
+        if nil != err </span><span class="cov8" title="1">{
                 fmt.Println("can't add post", err)
                 jsonError(w, http.StatusInternalServerError, "can't add post")
                 return
         }</span>
 
         <span class="cov8" title="1">data, err := h.PostsRepo.GetById(*lastID)
-        if nil != err </span><span class="cov0" title="0">{
+        if nil != err </span><span class="cov8" title="1">{
                 fmt.Println("can't get by id the added post", err)
                 jsonError(w, http.StatusInternalServerError, "can't get by id the added post")
                 return
         }</span>
 
         <span class="cov8" title="1">postDTO, err := h.DTOConverter.PostConvertToDTO(data)
-        if err != nil </span><span class="cov0" title="0">{
+        if err != nil </span><span class="cov8" title="1">{
                 fmt.Println("can't convert post to dto", err)
                 jsonError(w, http.StatusInternalServerError, "can't convert to dto")
                 return
@@ -818,20 +816,20 @@ func (h *PostsHandler) UpVote(w http.ResponseWriter, r *http.Request) <span clas
 
         isUpVoted, err := h.PostsRepo.UpVote(postId)
 
-        if nil != err || !isUpVoted </span><span class="cov0" title="0">{
+        if nil != err || !isUpVoted </span><span class="cov8" title="1">{
                 jsonError(w, http.StatusInternalServerError, "can't up vote")
                 return
         }</span>
 
         <span class="cov8" title="1">data, err := h.PostsRepo.GetById(postId)
 
-        if nil != err </span><span class="cov0" title="0">{
+        if nil != err </span><span class="cov8" title="1">{
                 jsonError(w, http.StatusInternalServerError, "can't get upvoted post")
                 return
         }</span>
 
         <span class="cov8" title="1">postUpdatedDTO, err := h.DTOConverter.PostConvertToDTO(data)
-        if err != nil </span><span class="cov0" title="0">{
+        if err != nil </span><span class="cov8" title="1">{
                 fmt.Println("can't convert post to dto", err)
                 jsonError(w, http.StatusInternalServerError, "can't convert to dto")
                 return
@@ -847,7 +845,7 @@ func (h *PostsHandler) DownVote(w http.ResponseWriter, r *http.Request) <span cl
 
         _, err := h.PostsRepo.DownVote(postId)
 
-        if nil != err </span><span class="cov0" title="0">{
+        if nil != err </span><span class="cov8" title="1">{
                 fmt.Println("can't down vote", err)
                 jsonError(w, http.StatusInternalServerError, "can't down vote")
                 return
@@ -855,13 +853,13 @@ func (h *PostsHandler) DownVote(w http.ResponseWriter, r *http.Request) <span cl
 
         <span class="cov8" title="1">data, err := h.PostsRepo.GetById(postId)
 
-        if nil != err </span><span class="cov0" title="0">{
+        if nil != err </span><span class="cov8" title="1">{
                 jsonError(w, http.StatusInternalServerError, "can't get updated post")
                 return
         }</span>
 
         <span class="cov8" title="1">postUpdatedDTO, err := h.DTOConverter.PostConvertToDTO(data)
-        if err != nil </span><span class="cov0" title="0">{
+        if err != nil </span><span class="cov8" title="1">{
                 fmt.Println("can't convert post to dto", err)
                 jsonError(w, http.StatusInternalServerError, "can't convert to dto")
                 return
@@ -877,7 +875,7 @@ func (h *PostsHandler) UnVote(w http.ResponseWriter, r *http.Request) <span clas
 
         _, err := h.PostsRepo.DownVote(postId)
 
-        if nil != err </span><span class="cov0" title="0">{
+        if nil != err </span><span class="cov8" title="1">{
                 fmt.Println("can't down vote", err)
                 jsonError(w, http.StatusInternalServerError, "can't down vote")
                 return
@@ -885,13 +883,13 @@ func (h *PostsHandler) UnVote(w http.ResponseWriter, r *http.Request) <span clas
 
         <span class="cov8" title="1">data, err := h.PostsRepo.GetById(postId)
 
-        if nil != err </span><span class="cov0" title="0">{
+        if nil != err </span><span class="cov8" title="1">{
                 jsonError(w, http.StatusInternalServerError, "can't get updated post")
                 return
         }</span>
 
         <span class="cov8" title="1">postUpdatedDTO, err := h.DTOConverter.PostConvertToDTO(data)
-        if err != nil </span><span class="cov0" title="0">{
+        if err != nil </span><span class="cov8" title="1">{
                 fmt.Println("can't convert post to dto", err)
                 jsonError(w, http.StatusInternalServerError, "can't convert to dto")
                 return
@@ -902,32 +900,26 @@ func (h *PostsHandler) UnVote(w http.ResponseWriter, r *http.Request) <span clas
 }
 
 func (h *PostsHandler) AddComment(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
-
         params := mux.Vars(r)
         postId := params["POST_ID"]
-
         sess, err := SessionFromContext(r.Context())
         if err != nil </span><span class="cov0" title="0">{
                 fmt.Println("err: ", err)
                 jsonError(w, http.StatusInternalServerError, "can't get session from context")
                 return
         }</span>
-
         <span class="cov8" title="1">body, err := ioutil.ReadAll(r.Body)
         defer r.Body.Close()
         if nil != err </span><span class="cov0" title="0">{
                 jsonError(w, http.StatusInternalServerError, "read request err")
                 return
         }</span>
-
         <span class="cov8" title="1">commentRequest := &amp;CommentRequestDTO{}
         err = json.Unmarshal(body, commentRequest)
-
         if nil != err </span><span class="cov0" title="0">{
                 jsonError(w, http.StatusInternalServerError, "can't unpack payload")
                 return
         }</span>
-
         <span class="cov8" title="1">newComment := &amp;Comment{
                 ID:      h.UUIDGetter.GetUUID(),
                 Body:    commentRequest.Comment,
@@ -935,30 +927,24 @@ func (h *PostsHandler) AddComment(w http.ResponseWriter, r *http.Request) <span 
                 UserId:  sess.UserID,
                 Created: h.TimeGetter.GetCreated(),
         }
-
         _, err = h.CommentRepo.Add(newComment)
-
-        if nil != err </span><span class="cov0" title="0">{
+        if nil != err </span><span class="cov8" title="1">{
                 fmt.Println("can't add comment", err)
                 jsonError(w, http.StatusInternalServerError, "can't add comment")
                 return
         }</span>
-
         <span class="cov8" title="1">data, err := h.PostsRepo.GetById(postId)
-
-        if nil != err </span><span class="cov0" title="0">{
+        if nil != err </span><span class="cov8" title="1">{
                 fmt.Println("can't get updated post", err)
                 jsonError(w, http.StatusInternalServerError, "can't get by id updated post")
                 return
         }</span>
-
         <span class="cov8" title="1">postUpdatedDTO, err := h.DTOConverter.PostConvertToDTO(data)
-        if err != nil </span><span class="cov0" title="0">{
+        if err != nil </span><span class="cov8" title="1">{
                 fmt.Println("can't convert post to dto", err)
                 jsonError(w, http.StatusInternalServerError, "can't convert to dto")
                 return
         }</span>
-
         <span class="cov8" title="1">w.Header().Add("Content-Type", "application/json")
         jsonResponse(w, postUpdatedDTO)</span>
 }
@@ -967,30 +953,23 @@ func (h *PostsHandler) DeleteComment(w http.ResponseWriter, r *http.Request) <sp
         params := mux.Vars(r)
         postId := params["POST_ID"]
         commentId := params["COMMENT_ID"]
-
         isDeleted, err := h.CommentRepo.Delete(commentId)
-
-        if nil != err || !isDeleted </span><span class="cov0" title="0">{
+        if nil != err || !isDeleted </span><span class="cov8" title="1">{
                 jsonError(w, http.StatusInternalServerError, "can't delete comment, err")
                 return
         }</span>
-
         <span class="cov8" title="1">fmt.Println("Delete comment")
-
         data, err := h.PostsRepo.GetById(postId)
-
-        if nil != err </span><span class="cov0" title="0">{
+        if nil != err </span><span class="cov8" title="1">{
                 jsonError(w, http.StatusInternalServerError, "can't get updated post")
                 return
         }</span>
-
         <span class="cov8" title="1">postUpdatedDTO, err := h.DTOConverter.PostConvertToDTO(data)
-        if err != nil </span><span class="cov0" title="0">{
+        if err != nil </span><span class="cov8" title="1">{
                 fmt.Println("can't convert post to dto", err)
                 jsonError(w, http.StatusInternalServerError, "can't convert to dto")
                 return
         }</span>
-
         <span class="cov8" title="1">w.Header().Add("Content-Type", "application/json")
         jsonResponse(w, postUpdatedDTO)</span>
 }
@@ -1849,10 +1828,7 @@ import (
         "io/ioutil"
         "log"
         "net/http"
-        "os"
-        "time"
 
-        "github.com/golang-jwt/jwt"
         "github.com/gorilla/mux"
 )
 
@@ -1869,11 +1845,20 @@ type UserRepoI interface {
         Create(user *User) (*string, error)
 }
 
+type UserUtilsI interface {
+        GenerateJWT(user *User, sessID string) (string, error)
+        GeneratePasswordHash(password string) (string, error)
+        CheckPasswordHash(passwordReceived string, hash string) bool
+}
+
 type UserHandler struct {
         SessionManager SessionManagerI
         UserRepo       UserRepoI
         PostsRepo      PostRepoI
         DTOConverter   DTOConverterI
+        UUIDGetter     UUIDGetterI
+        TimeGetter     TimeGetterI
+        UserUtils      UserUtilsI
         Logger         *log.Logger
 }
 
@@ -1886,33 +1871,14 @@ func NewUserHandler(db *sql.DB, sm SessionManagerI) *UserHandler <span class="co
                         CommentRepo: NewCommentRepo(db),
                         VoteRepo:    NewVoteRepo(db),
                 },
-                Logger: nil,
+                UUIDGetter: &amp;UUIDGetter{},
+                TimeGetter: &amp;TimeGetter{},
+                UserUtils:  &amp;UserUtils{},
+                Logger:     nil,
         }
 }</span>
 
-func generateJWT(user *User, sessID string) (string, error) <span class="cov0" title="0">{
-        var signingKey = []byte(os.Getenv("SECRET_KEY"))
-        data := &amp;SessionJWTClaims{
-                User: UserJWtClaims{
-                        UserName: user.Login,
-                        ID:       user.ID,
-                        SessID:   sessID,
-                },
-                StandardClaims: jwt.StandardClaims{
-                        ExpiresAt: time.Now().Add(90 * 24 * time.Hour).Unix(),
-                        IssuedAt:  time.Now().Unix(),
-                },
-        }
-        tokenString, err := jwt.NewWithClaims(jwt.SigningMethodHS256, data).SignedString(signingKey)
-
-        if nil != err </span><span class="cov0" title="0">{
-                fmt.Printf("Error during generate token: %s", err.Error())
-                return "", err
-        }</span>
-        <span class="cov0" title="0">return tokenString, nil</span>
-}
-
-func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
         body, err := ioutil.ReadAll(r.Body)
         defer r.Body.Close()
         if nil != err </span><span class="cov0" title="0">{
@@ -1920,52 +1886,54 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) <span cla
                 jsonError(w, http.StatusInternalServerError, "can't read request")
                 return
         }</span>
-        <span class="cov0" title="0">registerReuqest := &amp;LoginDTO{}
+        <span class="cov8" title="1">registerReuqest := &amp;LoginDTO{}
         err = json.Unmarshal(body, registerReuqest)
         if nil != err </span><span class="cov0" title="0">{
                 fmt.Println("can't unpack payload: ", err.Error())
                 jsonError(w, http.StatusInternalServerError, "can't unpack payload")
                 return
         }</span>
-        <span class="cov0" title="0">passwordHash, err := GeneratePasswordHash(registerReuqest.Password)
-        if nil != err </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">passwordHash, err := h.UserUtils.GeneratePasswordHash(registerReuqest.Password)
+        if nil != err </span><span class="cov8" title="1">{
                 fmt.Println("can't generate a hash for the password: ", err.Error())
                 jsonError(w, http.StatusInternalServerError, "can't generate a hash for the password")
                 return
         }</span>
-        <span class="cov0" title="0">user := &amp;User{
+        <span class="cov8" title="1">user := &amp;User{
+                ID:       h.UUIDGetter.GetUUID(),
                 Login:    registerReuqest.UserName,
                 Password: passwordHash,
+                Created:  h.TimeGetter.GetCreated(),
         }
         lastID, err := h.UserRepo.Create(user)
-        if nil != err </span><span class="cov0" title="0">{
+        if nil != err </span><span class="cov8" title="1">{
                 fmt.Println("can't register a new user: ", err.Error())
                 jsonError(w, http.StatusInternalServerError, "can't register a new user")
                 return
         }</span>
-        <span class="cov0" title="0">fmt.Println("Create user with id", lastID)
+        <span class="cov8" title="1">fmt.Println("Create user with id", lastID)
         userAdded, err := h.UserRepo.GetById(*lastID)
-        if nil != err </span><span class="cov0" title="0">{
+        if nil != err </span><span class="cov8" title="1">{
                 fmt.Println("can't get new added user: ", err.Error())
                 jsonError(w, http.StatusInternalServerError, "can't get new added user")
                 return
         }</span>
 
-        <span class="cov0" title="0">sess, err := h.SessionManager.Create(w, userAdded)
+        <span class="cov8" title="1">sess, err := h.SessionManager.Create(w, userAdded)
 
-        if err != nil </span><span class="cov0" title="0">{
+        if err != nil </span><span class="cov8" title="1">{
                 fmt.Println("can't create session: ", err.Error())
                 jsonError(w, http.StatusInternalServerError, "can't create session")
                 return
         }</span>
 
-        <span class="cov0" title="0">tokenString, err := generateJWT(userAdded, sess.ID)
-        if nil != err </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">tokenString, err := h.UserUtils.GenerateJWT(userAdded, sess.ID)
+        if nil != err </span><span class="cov8" title="1">{
                 fmt.Println("can't generate jwt token: ", err.Error())
                 jsonError(w, http.StatusInternalServerError, "can't generate jwt token")
                 return
         }</span>
-        <span class="cov0" title="0">data := map[string]string{
+        <span class="cov8" title="1">data := map[string]string{
                 "token": tokenString,
         }
         w.Header().Add("Content-Type", "application/json")
@@ -1973,7 +1941,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) <span cla
         jsonResponse(w, data)</span>
 }
 
-func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
         data, err := ioutil.ReadAll(r.Body)
         defer r.Body.Close()
         if nil != err </span><span class="cov0" title="0">{
@@ -1981,40 +1949,40 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) <span class=
                 jsonError(w, http.StatusInternalServerError, "can't read request body")
                 return
         }</span>
-        <span class="cov0" title="0">loginRequest := &amp;LoginDTO{}
+        <span class="cov8" title="1">loginRequest := &amp;LoginDTO{}
         err = json.Unmarshal(data, loginRequest)
         if nil != err </span><span class="cov0" title="0">{
                 fmt.Println("can't unpack payload: ", err.Error())
                 jsonError(w, http.StatusInternalServerError, "can't unpack payload")
                 return
         }</span>
-        <span class="cov0" title="0">userStored, err := h.UserRepo.GetByLogin(loginRequest.UserName)
-        if nil != err </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">userStored, err := h.UserRepo.GetByLogin(loginRequest.UserName)
+        if nil != err </span><span class="cov8" title="1">{
                 fmt.Println("can't get user by login: ", err.Error())
                 jsonError(w, http.StatusInternalServerError, "user not found")
                 return
         }</span>
-        <span class="cov0" title="0">if !CheckPasswordHash(loginRequest.Password, userStored.Password) </span><span class="cov0" title="0">{
-                fmt.Println("invalid password: ", err.Error())
+        <span class="cov8" title="1">if !h.UserUtils.CheckPasswordHash(loginRequest.Password, userStored.Password) </span><span class="cov8" title="1">{
+                fmt.Println("invalid password")
                 jsonError(w, http.StatusUnauthorized, "invalid password")
                 return
         }</span>
 
-        <span class="cov0" title="0">sess, err := h.SessionManager.Create(w, userStored)
+        <span class="cov8" title="1">sess, err := h.SessionManager.Create(w, userStored)
 
-        if err != nil </span><span class="cov0" title="0">{
+        if err != nil </span><span class="cov8" title="1">{
                 fmt.Println("can't create session: ", err.Error())
                 jsonError(w, http.StatusInternalServerError, "can't create session")
                 return
         }</span>
 
-        <span class="cov0" title="0">validToken, err := generateJWT(userStored, sess.ID)
-        if nil != err </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">validToken, err := h.UserUtils.GenerateJWT(userStored, sess.ID)
+        if nil != err </span><span class="cov8" title="1">{
                 fmt.Println("can't generate jwt token: ", err.Error())
                 jsonError(w, http.StatusInternalServerError, "can't generate jwt token")
                 return
         }</span>
-        <span class="cov0" title="0">tokenData := map[string]string{
+        <span class="cov8" title="1">tokenData := map[string]string{
                 "token": validToken,
         }
         w.Header().Add("Content-Type", "application/json")
@@ -2026,13 +1994,13 @@ func (h *UserHandler) GetPosts(w http.ResponseWriter, r *http.Request) <span cla
         login := params["USER_LOGIN"]
 
         data, err := h.PostsRepo.GetByUserLogin(login)
-        if nil != err </span><span class="cov0" title="0">{
+        if nil != err </span><span class="cov8" title="1">{
                 jsonError(w, http.StatusInternalServerError, "can't get posts by user login")
                 return
         }</span>
 
         <span class="cov8" title="1">postsDTO, err := h.DTOConverter.PostsConvertToDTO(data)
-        if nil != err </span><span class="cov0" title="0">{
+        if nil != err </span><span class="cov8" title="1">{
                 jsonError(w, http.StatusInternalServerError, "can't convert posts by user login")
                 return
         }</span>
@@ -2074,7 +2042,7 @@ func NewMockSessionManagerI(ctrl *gomock.Controller) *MockSessionManagerI <span 
 }</span>
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockSessionManagerI) EXPECT() *MockSessionManagerIMockRecorder <span class="cov0" title="0">{
+func (m *MockSessionManagerI) EXPECT() *MockSessionManagerIMockRecorder <span class="cov8" title="1">{
         return m.recorder
 }</span>
 
@@ -2094,7 +2062,7 @@ func (mr *MockSessionManagerIMockRecorder) Check(arg0 interface{}) *gomock.Call 
 }</span>
 
 // Create mocks base method.
-func (m *MockSessionManagerI) Create(arg0 http.ResponseWriter, arg1 *User) (*Session, error) <span class="cov0" title="0">{
+func (m *MockSessionManagerI) Create(arg0 http.ResponseWriter, arg1 *User) (*Session, error) <span class="cov8" title="1">{
         m.ctrl.T.Helper()
         ret := m.ctrl.Call(m, "Create", arg0, arg1)
         ret0, _ := ret[0].(*Session)
@@ -2103,7 +2071,7 @@ func (m *MockSessionManagerI) Create(arg0 http.ResponseWriter, arg1 *User) (*Ses
 }</span>
 
 // Create indicates an expected call of Create.
-func (mr *MockSessionManagerIMockRecorder) Create(arg0, arg1 interface{}) *gomock.Call <span class="cov0" title="0">{
+func (mr *MockSessionManagerIMockRecorder) Create(arg0, arg1 interface{}) *gomock.Call <span class="cov8" title="1">{
         mr.mock.ctrl.T.Helper()
         return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockSessionManagerI)(nil).Create), arg0, arg1)
 }</span>
@@ -2148,19 +2116,19 @@ type MockUserRepoIMockRecorder struct {
 }
 
 // NewMockUserRepoI creates a new mock instance.
-func NewMockUserRepoI(ctrl *gomock.Controller) *MockUserRepoI <span class="cov0" title="0">{
+func NewMockUserRepoI(ctrl *gomock.Controller) *MockUserRepoI <span class="cov8" title="1">{
         mock := &amp;MockUserRepoI{ctrl: ctrl}
         mock.recorder = &amp;MockUserRepoIMockRecorder{mock}
         return mock
 }</span>
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockUserRepoI) EXPECT() *MockUserRepoIMockRecorder <span class="cov0" title="0">{
+func (m *MockUserRepoI) EXPECT() *MockUserRepoIMockRecorder <span class="cov8" title="1">{
         return m.recorder
 }</span>
 
 // Create mocks base method.
-func (m *MockUserRepoI) Create(user *User) (*string, error) <span class="cov0" title="0">{
+func (m *MockUserRepoI) Create(user *User) (*string, error) <span class="cov8" title="1">{
         m.ctrl.T.Helper()
         ret := m.ctrl.Call(m, "Create", user)
         ret0, _ := ret[0].(*string)
@@ -2169,13 +2137,13 @@ func (m *MockUserRepoI) Create(user *User) (*string, error) <span class="cov0" t
 }</span>
 
 // Create indicates an expected call of Create.
-func (mr *MockUserRepoIMockRecorder) Create(user interface{}) *gomock.Call <span class="cov0" title="0">{
+func (mr *MockUserRepoIMockRecorder) Create(user interface{}) *gomock.Call <span class="cov8" title="1">{
         mr.mock.ctrl.T.Helper()
         return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockUserRepoI)(nil).Create), user)
 }</span>
 
 // GetById mocks base method.
-func (m *MockUserRepoI) GetById(id string) (*User, error) <span class="cov0" title="0">{
+func (m *MockUserRepoI) GetById(id string) (*User, error) <span class="cov8" title="1">{
         m.ctrl.T.Helper()
         ret := m.ctrl.Call(m, "GetById", id)
         ret0, _ := ret[0].(*User)
@@ -2184,13 +2152,13 @@ func (m *MockUserRepoI) GetById(id string) (*User, error) <span class="cov0" tit
 }</span>
 
 // GetById indicates an expected call of GetById.
-func (mr *MockUserRepoIMockRecorder) GetById(id interface{}) *gomock.Call <span class="cov0" title="0">{
+func (mr *MockUserRepoIMockRecorder) GetById(id interface{}) *gomock.Call <span class="cov8" title="1">{
         mr.mock.ctrl.T.Helper()
         return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetById", reflect.TypeOf((*MockUserRepoI)(nil).GetById), id)
 }</span>
 
 // GetByLogin mocks base method.
-func (m *MockUserRepoI) GetByLogin(login string) (*User, error) <span class="cov0" title="0">{
+func (m *MockUserRepoI) GetByLogin(login string) (*User, error) <span class="cov8" title="1">{
         m.ctrl.T.Helper()
         ret := m.ctrl.Call(m, "GetByLogin", login)
         ret0, _ := ret[0].(*User)
@@ -2199,9 +2167,76 @@ func (m *MockUserRepoI) GetByLogin(login string) (*User, error) <span class="cov
 }</span>
 
 // GetByLogin indicates an expected call of GetByLogin.
-func (mr *MockUserRepoIMockRecorder) GetByLogin(login interface{}) *gomock.Call <span class="cov0" title="0">{
+func (mr *MockUserRepoIMockRecorder) GetByLogin(login interface{}) *gomock.Call <span class="cov8" title="1">{
         mr.mock.ctrl.T.Helper()
         return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByLogin", reflect.TypeOf((*MockUserRepoI)(nil).GetByLogin), login)
+}</span>
+
+// MockUserUtilsI is a mock of UserUtilsI interface.
+type MockUserUtilsI struct {
+        ctrl     *gomock.Controller
+        recorder *MockUserUtilsIMockRecorder
+}
+
+// MockUserUtilsIMockRecorder is the mock recorder for MockUserUtilsI.
+type MockUserUtilsIMockRecorder struct {
+        mock *MockUserUtilsI
+}
+
+// NewMockUserUtilsI creates a new mock instance.
+func NewMockUserUtilsI(ctrl *gomock.Controller) *MockUserUtilsI <span class="cov8" title="1">{
+        mock := &amp;MockUserUtilsI{ctrl: ctrl}
+        mock.recorder = &amp;MockUserUtilsIMockRecorder{mock}
+        return mock
+}</span>
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockUserUtilsI) EXPECT() *MockUserUtilsIMockRecorder <span class="cov8" title="1">{
+        return m.recorder
+}</span>
+
+// CheckPasswordHash mocks base method.
+func (m *MockUserUtilsI) CheckPasswordHash(passwordReceived, hash string) bool <span class="cov8" title="1">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "CheckPasswordHash", passwordReceived, hash)
+        ret0, _ := ret[0].(bool)
+        return ret0
+}</span>
+
+// CheckPasswordHash indicates an expected call of CheckPasswordHash.
+func (mr *MockUserUtilsIMockRecorder) CheckPasswordHash(passwordReceived, hash interface{}) *gomock.Call <span class="cov8" title="1">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckPasswordHash", reflect.TypeOf((*MockUserUtilsI)(nil).CheckPasswordHash), passwordReceived, hash)
+}</span>
+
+// GenerateJWT mocks base method.
+func (m *MockUserUtilsI) GenerateJWT(user *User, sessID string) (string, error) <span class="cov8" title="1">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "GenerateJWT", user, sessID)
+        ret0, _ := ret[0].(string)
+        ret1, _ := ret[1].(error)
+        return ret0, ret1
+}</span>
+
+// GenerateJWT indicates an expected call of GenerateJWT.
+func (mr *MockUserUtilsIMockRecorder) GenerateJWT(user, sessID interface{}) *gomock.Call <span class="cov8" title="1">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateJWT", reflect.TypeOf((*MockUserUtilsI)(nil).GenerateJWT), user, sessID)
+}</span>
+
+// GeneratePasswordHash mocks base method.
+func (m *MockUserUtilsI) GeneratePasswordHash(password string) (string, error) <span class="cov8" title="1">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "GeneratePasswordHash", password)
+        ret0, _ := ret[0].(string)
+        ret1, _ := ret[1].(error)
+        return ret0, ret1
+}</span>
+
+// GeneratePasswordHash indicates an expected call of GeneratePasswordHash.
+func (mr *MockUserUtilsIMockRecorder) GeneratePasswordHash(password interface{}) *gomock.Call <span class="cov8" title="1">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GeneratePasswordHash", reflect.TypeOf((*MockUserUtilsI)(nil).GeneratePasswordHash), password)
 }</span>
 </pre>
 		
@@ -2210,64 +2245,58 @@ func (mr *MockUserRepoIMockRecorder) GetByLogin(login interface{}) *gomock.Call 
 import (
         "database/sql"
         "fmt"
-        "time"
-
-        "github.com/google/uuid"
 )
 
 type UserRepo struct {
         DB *sql.DB
 }
 
-func NewUserRepo(db *sql.DB) *UserRepo <span class="cov0" title="0">{
+func NewUserRepo(db *sql.DB) *UserRepo <span class="cov8" title="1">{
         return &amp;UserRepo{
                 DB: db,
         }
 }</span>
 
-func (repo *UserRepo) GetById(id string) (*User, error) <span class="cov0" title="0">{
+func (repo *UserRepo) GetById(id string) (*User, error) <span class="cov8" title="1">{
         fmt.Println("Get user by id")
         user := &amp;User{}
         err := repo.DB.
                 QueryRow("SELECT id, login, password FROM user WHERE id = ?", id).
                 Scan(&amp;user.ID, &amp;user.Login, &amp;user.Password)
-        if nil != err </span><span class="cov0" title="0">{
+        if nil != err </span><span class="cov8" title="1">{
                 return nil, err
         }</span>
-        <span class="cov0" title="0">return user, nil</span>
+        <span class="cov8" title="1">return user, nil</span>
 }
 
-func (repo *UserRepo) GetByLogin(login string) (*User, error) <span class="cov0" title="0">{
+func (repo *UserRepo) GetByLogin(login string) (*User, error) <span class="cov8" title="1">{
         fmt.Println("Get user by login")
         user := &amp;User{}
         err := repo.DB.
                 QueryRow("SELECT id, login, password FROM user WHERE login = ?", login).
                 Scan(&amp;user.ID, &amp;user.Login, &amp;user.Password)
-        if nil != err </span><span class="cov0" title="0">{
+        if nil != err </span><span class="cov8" title="1">{
                 return nil, err
         }</span>
-        <span class="cov0" title="0">return user, nil</span>
+        <span class="cov8" title="1">return user, nil</span>
 }
 
-func (repo *UserRepo) Create(user *User) (*string, error) <span class="cov0" title="0">{
+func (repo *UserRepo) Create(user *User) (*string, error) <span class="cov8" title="1">{
         fmt.Println("Create new user")
-        uuid := uuid.NewString()
-        created := time.Now().Format(time.RFC3339)
-        fmt.Println("created: ", created)
         _, err := repo.DB.Exec(
                 "INSERT INTO user (id, login, password, created) VALUES(?, ?, ?, ?)",
-                uuid,
+                user.ID,
                 user.Login,
                 user.Password,
-                created,
+                user.Created,
         )
 
-        if nil != err </span><span class="cov0" title="0">{
+        if nil != err </span><span class="cov8" title="1">{
                 return nil, err
         }</span>
 
-        <span class="cov0" title="0">fmt.Println("new id", uuid)
-        return &amp;uuid, nil</span>
+        <span class="cov8" title="1">fmt.Println("new id", user.ID)
+        return &amp;user.ID, nil</span>
 }
 </pre>
 		
@@ -2275,20 +2304,48 @@ func (repo *UserRepo) Create(user *User) (*string, error) <span class="cov0" tit
 
 import (
         "fmt"
+        "os"
+        "time"
 
+        "github.com/golang-jwt/jwt"
         "golang.org/x/crypto/bcrypt"
 )
 
-func GeneratePasswordHash(password string) (string, error) <span class="cov0" title="0">{
+type UserUtils struct{}
+
+func (u *UserUtils) GenerateJWT(user *User, sessID string) (string, error) <span class="cov0" title="0">{
+        var signingKey = []byte(os.Getenv("SECRET_KEY"))
+        data := &amp;SessionJWTClaims{
+                User: UserJWtClaims{
+                        UserName: user.Login,
+                        ID:       user.ID,
+                        SessID:   sessID,
+                },
+                StandardClaims: jwt.StandardClaims{
+                        ExpiresAt: time.Now().Add(90 * 24 * time.Hour).Unix(),
+                        IssuedAt:  time.Now().Unix(),
+                },
+        }
+        tokenString, err := jwt.NewWithClaims(jwt.SigningMethodHS256, data).SignedString(signingKey)
+
+        if nil != err </span><span class="cov0" title="0">{
+                fmt.Printf("Error during generate token: %s", err.Error())
+                return "", err
+        }</span>
+        <span class="cov0" title="0">return tokenString, nil</span>
+}
+
+func (u *UserUtils) GeneratePasswordHash(password string) (string, error) <span class="cov0" title="0">{
         bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
         return string(bytes), err
 }</span>
 
-func CheckPasswordHash(passwordReceived string, hash string) bool <span class="cov0" title="0">{
+func (u *UserUtils) CheckPasswordHash(passwordReceived string, hash string) bool <span class="cov0" title="0">{
         err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(passwordReceived))
         isEqual := nil == err
         if !isEqual </span><span class="cov0" title="0">{
-                fmt.Errorf("check password hash: %s", err.Error())
+                fmt.Printf("check password hash: %s", err.Error())
+                return false
         }</span>
         <span class="cov0" title="0">return isEqual</span>
 }

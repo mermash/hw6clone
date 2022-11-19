@@ -3,9 +3,6 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"time"
-
-	"github.com/google/uuid"
 )
 
 type UserRepo struct {
@@ -44,21 +41,18 @@ func (repo *UserRepo) GetByLogin(login string) (*User, error) {
 
 func (repo *UserRepo) Create(user *User) (*string, error) {
 	fmt.Println("Create new user")
-	uuid := uuid.NewString()
-	created := time.Now().Format(time.RFC3339)
-	fmt.Println("created: ", created)
 	_, err := repo.DB.Exec(
 		"INSERT INTO user (id, login, password, created) VALUES(?, ?, ?, ?)",
-		uuid,
+		user.ID,
 		user.Login,
 		user.Password,
-		created,
+		user.Created,
 	)
 
 	if nil != err {
 		return nil, err
 	}
 
-	fmt.Println("new id", uuid)
-	return &uuid, nil
+	fmt.Println("new id", user.ID)
+	return &user.ID, nil
 }
