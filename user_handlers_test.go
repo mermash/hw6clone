@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -105,7 +104,7 @@ func TestGetPosts(t *testing.T) {
 	w := httptest.NewRecorder()
 	service.GetPosts(w, req)
 	resp := w.Result()
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body)
 	bodyStr := string(body)
 	if !reflect.DeepEqual(bodyStr, multipleExpectationByUserLogin) {
 		t.Errorf("it's not matched; want: %#v; have: %#v", bodyStr, multipleExpectationByUserLogin)
@@ -141,7 +140,7 @@ func TestGetPosts(t *testing.T) {
 }
 
 func TestLogin(t *testing.T) {
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -169,7 +168,7 @@ func TestLogin(t *testing.T) {
 	userUtilsMock.EXPECT().GenerateJWT(user, sessUser.ID).Return(token, nil)
 	service.Login(w, req)
 	resp := w.Result()
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body)
 	bodyStr := string(body)
 	if !reflect.DeepEqual(bodyStr, respLogin) {
 		t.Errorf("it's not matched; want: %#v; have: %#v", respLogin, bodyStr)
@@ -228,7 +227,7 @@ func TestLogin(t *testing.T) {
 }
 
 func TestRegister(t *testing.T) {
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -259,7 +258,7 @@ func TestRegister(t *testing.T) {
 	userUtilsMock.EXPECT().GenerateJWT(user, sessUser.ID).Return(token, nil)
 	service.Register(w, req)
 	resp := w.Result()
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body)
 	bodyStr := string(body)
 	if !reflect.DeepEqual(bodyStr, respLogin) {
 		t.Errorf("it's not matched; want: %#v; have: %#v", respLogin, bodyStr)

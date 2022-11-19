@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 
@@ -58,7 +58,7 @@ func NewUserHandler(db *sql.DB, sm SessionManagerI) *UserHandler {
 }
 
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	defer r.Body.Close()
 	if nil != err {
 		fmt.Println("can't read request: ", err.Error())
@@ -121,7 +121,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
-	data, err := ioutil.ReadAll(r.Body)
+	data, err := io.ReadAll(r.Body)
 	defer r.Body.Close()
 	if nil != err {
 		fmt.Println("can't read request body", err.Error())

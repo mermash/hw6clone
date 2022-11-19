@@ -665,7 +665,7 @@ func (h *PostsHandler) Add(w http.ResponseWriter, r *http.Request) <span class="
                 return
         }</span>
 
-        <span class="cov0" title="0">body, err := ioutil.ReadAll(r.Body)
+        <span class="cov0" title="0">body, err := io.ReadAll(r.Body)
         r.Body.Close()
         if nil != err </span><span class="cov0" title="0">{
                 jsonError(w, http.StatusInternalServerError, "read reqeust err")
@@ -832,7 +832,7 @@ func (h *PostsHandler) AddComment(w http.ResponseWriter, r *http.Request) <span 
                 return
         }</span>
 
-        <span class="cov0" title="0">body, err := ioutil.ReadAll(r.Body)
+        <span class="cov0" title="0">body, err := io.ReadAll(r.Body)
         defer r.Body.Close()
         if nil != err </span><span class="cov0" title="0">{
                 jsonError(w, http.StatusInternalServerError, "read request err")
@@ -1366,7 +1366,7 @@ func generateJWT(user *User, sessID string) (string, error) <span class="cov0" t
 }
 
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
-        body, err := ioutil.ReadAll(r.Body)
+        body, err := io.ReadAll(r.Body)
         defer r.Body.Close()
         if nil != err </span><span class="cov0" title="0">{
                 fmt.Println("can't read request: ", err.Error())
@@ -1421,7 +1421,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) <span cla
 }
 
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
-        data, err := ioutil.ReadAll(r.Body)
+        data, err := io.ReadAll(r.Body)
         defer r.Body.Close()
         if nil != err </span><span class="cov0" title="0">{
                 fmt.Println("can't read request body", err.Error())

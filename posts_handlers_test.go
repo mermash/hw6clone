@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -102,7 +101,7 @@ var (
 )
 
 func TestList(t *testing.T) {
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	postsRepoMock := NewMockPostRepoI(ctrl)
@@ -123,7 +122,7 @@ func TestList(t *testing.T) {
 	w := httptest.NewRecorder()
 	service.List(w, req)
 	resp := w.Result()
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body)
 	bodyStr := string(body)
 	if !reflect.DeepEqual(bodyStr, multipleExpectation) {
 		t.Errorf("there aren't match; want: %#v; have: %#v", multipleExpectation, bodyStr)
@@ -155,7 +154,7 @@ func TestList(t *testing.T) {
 }
 
 func TestGetById(t *testing.T) {
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	postsRepoMock := NewMockPostRepoI(ctrl)
@@ -181,7 +180,7 @@ func TestGetById(t *testing.T) {
 	req = mux.SetURLVars(req, urlVars)
 	service.GetById(w, req)
 	resp := w.Result()
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body)
 	bodyStr := string(body)
 	if !reflect.DeepEqual(bodyStr, singleExpectation) {
 		t.Errorf("it's not match; want :%#v; have: %#v", singleExpectation, bodyStr)
@@ -215,7 +214,7 @@ func TestGetById(t *testing.T) {
 }
 
 func TestGetByCategoryName(t *testing.T) {
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	postsRepoMock := NewMockPostRepoI(ctrl)
@@ -241,7 +240,7 @@ func TestGetByCategoryName(t *testing.T) {
 	req = mux.SetURLVars(req, urlVars)
 	service.GetByCategoryName(w, req)
 	resp := w.Result()
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body)
 	bodyStr := string(body)
 	if !reflect.DeepEqual(bodyStr, multipleExpectation) {
 		t.Errorf("it is not matched; want: %#v; have: %#v", multipleExpectation, bodyStr)
@@ -326,7 +325,7 @@ func TestAdd(t *testing.T) {
 	service.Add(w, req.WithContext(ctx))
 
 	resp := w.Result()
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body)
 	bodyStr := string(body)
 
 	if !reflect.DeepEqual(bodyStr, singleExpectation) {
@@ -397,7 +396,7 @@ func TestAdd(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	postsRepoMock := NewMockPostRepoI(ctrl)
@@ -421,7 +420,7 @@ func TestDelete(t *testing.T) {
 	w := httptest.NewRecorder()
 	service.Delete(w, req)
 	resp := w.Result()
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body)
 	bodyStr := string(body)
 	if !reflect.DeepEqual(bodyStr, expect) {
 		t.Errorf("it's not matched; want: %#v; have: %#v", expect, bodyStr)
@@ -442,7 +441,7 @@ func TestDelete(t *testing.T) {
 }
 
 func TestUpVote(t *testing.T) {
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -468,7 +467,7 @@ func TestUpVote(t *testing.T) {
 	w := httptest.NewRecorder()
 	service.UpVote(w, req)
 	resp := w.Result()
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body)
 	bodyStr := string(body)
 	if !reflect.DeepEqual(bodyStr, singleExpectation) {
 		t.Errorf("it's not matched; want: %#v; have: %#v", singleExpectation, bodyStr)
@@ -516,7 +515,7 @@ func TestUpVote(t *testing.T) {
 }
 
 func TestDownVote(t *testing.T) {
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -542,7 +541,7 @@ func TestDownVote(t *testing.T) {
 	w := httptest.NewRecorder()
 	service.DownVote(w, req)
 	resp := w.Result()
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body)
 	bodyStr := string(body)
 	if !reflect.DeepEqual(bodyStr, singleExpectation) {
 		t.Errorf("it's not matched; want: %#v; have: %#v", singleExpectation, bodyStr)
@@ -590,7 +589,7 @@ func TestDownVote(t *testing.T) {
 }
 
 func TestUnVote(t *testing.T) {
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -616,7 +615,7 @@ func TestUnVote(t *testing.T) {
 	w := httptest.NewRecorder()
 	service.UnVote(w, req)
 	resp := w.Result()
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body)
 	bodyStr := string(body)
 	if !reflect.DeepEqual(bodyStr, singleExpectation) {
 		t.Errorf("it's not matched; want: %#v; have: %#v", singleExpectation, bodyStr)
@@ -664,7 +663,7 @@ func TestUnVote(t *testing.T) {
 }
 
 func TestAddComment(t *testing.T) {
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -708,7 +707,7 @@ func TestAddComment(t *testing.T) {
 	service.AddComment(w, req.WithContext(ctx))
 
 	resp := w.Result()
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body)
 	bodyStr := string(body)
 	if !reflect.DeepEqual(bodyStr, singleExpectationWithComments) {
 		t.Errorf("it's not matched; want: %#v; have: %#v", singleExpectationWithComments, bodyStr)
@@ -798,7 +797,7 @@ func TestDeleteComment(t *testing.T) {
 	w := httptest.NewRecorder()
 	service.DeleteComment(w, req.WithContext(ctx))
 	resp := w.Result()
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body)
 	bodyStr := string(body)
 	if !reflect.DeepEqual(bodyStr, singleExpectation) {
 		t.Errorf("it's not match; want: %#v; have: %#v", singleExpectation, bodyStr)

@@ -577,7 +577,7 @@ import (
         "database/sql"
         "encoding/json"
         "fmt"
-        "io/ioutil"
+        "io"
         "log"
         "net/http"
         "time"
@@ -737,7 +737,7 @@ func (h *PostsHandler) Add(w http.ResponseWriter, r *http.Request) <span class="
                 return
         }</span>
 
-        <span class="cov8" title="1">body, err := ioutil.ReadAll(r.Body)
+        <span class="cov8" title="1">body, err := io.ReadAll(r.Body)
         r.Body.Close()
         if nil != err </span><span class="cov0" title="0">{
                 jsonError(w, http.StatusInternalServerError, "read reqeust err")
@@ -908,7 +908,7 @@ func (h *PostsHandler) AddComment(w http.ResponseWriter, r *http.Request) <span 
                 jsonError(w, http.StatusInternalServerError, "can't get session from context")
                 return
         }</span>
-        <span class="cov8" title="1">body, err := ioutil.ReadAll(r.Body)
+        <span class="cov8" title="1">body, err := io.ReadAll(r.Body)
         defer r.Body.Close()
         if nil != err </span><span class="cov0" title="0">{
                 jsonError(w, http.StatusInternalServerError, "read request err")
@@ -1825,7 +1825,7 @@ import (
         "database/sql"
         "encoding/json"
         "fmt"
-        "io/ioutil"
+        "io"
         "log"
         "net/http"
 
@@ -1879,7 +1879,7 @@ func NewUserHandler(db *sql.DB, sm SessionManagerI) *UserHandler <span class="co
 }</span>
 
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
-        body, err := ioutil.ReadAll(r.Body)
+        body, err := io.ReadAll(r.Body)
         defer r.Body.Close()
         if nil != err </span><span class="cov0" title="0">{
                 fmt.Println("can't read request: ", err.Error())
@@ -1942,7 +1942,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) <span cla
 }
 
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
-        data, err := ioutil.ReadAll(r.Body)
+        data, err := io.ReadAll(r.Body)
         defer r.Body.Close()
         if nil != err </span><span class="cov0" title="0">{
                 fmt.Println("can't read request body", err.Error())

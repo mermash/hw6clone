@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"time"
@@ -164,7 +164,7 @@ func (h *PostsHandler) Add(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	r.Body.Close()
 	if nil != err {
 		jsonError(w, http.StatusInternalServerError, "read reqeust err")
@@ -335,7 +335,7 @@ func (h *PostsHandler) AddComment(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, http.StatusInternalServerError, "can't get session from context")
 		return
 	}
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	defer r.Body.Close()
 	if nil != err {
 		jsonError(w, http.StatusInternalServerError, "read request err")
