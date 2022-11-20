@@ -31,7 +31,6 @@ jobs:
       uses: mr-smithers-excellent/docker-build-push@v5
       with:
         image: mermash/redditclone-app
-        tags: v1, latest
         registry: docker.io
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
