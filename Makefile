@@ -30,3 +30,11 @@ stop:
 	@echo "-- stop app"
 	docker compose down
 	docker rmi mermash/redditclone-app
+
+.PHONY: push
+push:
+	@echo "-- push to github ${MESSAGE}"
+	git add .
+	git status
+	git commit -m "${MESSAGE}"
+	git push
