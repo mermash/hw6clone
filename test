@@ -1,2 +1,7 @@
 [{"id":"dc1e2f25-76a5-4aac-9212-96e2121c16f1","author":{"username":"mer","id":"522cd619-841f-43d5-866d-f880e5f48d18"},"category":"fashion","comments":[],"created":"2022-11-10T11:24:34Z","score":1,"text":"test fashion","title":"test fashion","type":"text","upvotepercentage":0,"votes":[],"views":0}]
 [{"id":"dc1e2f25-76a5-4aac-9212-96e2121c16f1","author":{"username":"mer","id":"522cd619-841f-43d5-866d-f880e5f48d18"},"category":"fashion","comments":[],"created":"2022-11-09T19:51:42Z","score":1,"text":"test fashion","title":"test fashion","type":"text","upvotepercentage":0,"votes":[],"views":0}]
+
+
+
+{"id":"dc1e2f25-76a5-4aac-9212-96e2121c16f1","author":{"username":"mer","id":"522cd619-841f-43d5-866d-f880e5f48d18"},"category":"fashion","comments":[{"author":{"username":"mer","id":"522cd619-841f-43d5-866d-f880e5f48d18"},"body":"test comment fashion","created":"2022-11-10T11:24:44Z","id":"dbed62a8-79c5-43bd-9594-92cddeb261ac"}],"created":"2022-11-10T11:24:34Z","score":1,"text":"test fashion","title":"test fashion","type":"text","upvotepercentage":0,"votes":[],"views":0}
+{"id":"dc1e2f25-76a5-4aac-9212-96e2121c16f1","author":{"username":"mer","id":"522cd619-841f-43d5-866d-f880e5f48d18"},"category":"fashion","comments":[{"author":{"username":"mer","id":"522cd619-841f-43d5-866d-f880e5f48d18"},"body":"test comment fashion","created":"2022-11-10T11:24:44Z","id":"dbed62a8-79c5-43bd-9594-92cddeb261ac"}],"created":"2022-11-09T19:51:42Z","score":1,"text":"test fashion","title":"test fashion","type":"text","upvotepercentage":0,"votes":[],"views":0}

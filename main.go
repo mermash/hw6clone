@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"go.uber.org/zap"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -25,11 +26,13 @@ func main() {
 	db, err := sql.Open("mysql", dsn)
 	if nil != err {
 		fmt.Println(fmt.Errorf("can't connect to db"), err.Error())
+		return
 	}
 	db.SetMaxOpenConns(10)
 	err = db.Ping()
 	if nil != err {
 		fmt.Println(fmt.Errorf("can't connect to db: %s", err.Error()))
+		return
 	}
 
 	sm := NewSessionDBManagerJWT(db)
@@ -65,6 +68,14 @@ func main() {
 
 	amw := NewAuthMiddleware(sm)
 	router.Use(amw.AuthMiddlewareSessionJWT)
+
+	logger, err := zap.NewProduction()
+	if err != nil {
+		fmt.Println("zap logger error: ", err)
+	}
+	defer logger.Sync()
+	acmw := NewAccessLoggerMiddleware(logger)
+	router.Use(acmw.AccessLog)
 
 	fmt.Println("starting server at :8080")
 	http.ListenAndServe(":8080", router)
