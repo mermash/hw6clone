@@ -20,6 +20,7 @@ func NewAccessLoggerMiddleware(log *zap.Logger) *AccessLogger {
 func (ac *AccessLogger) AccessLog(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
+		next.ServeHTTP(w, r)
 		ac.Logger.Info(r.URL.Path,
 			zap.String("method", r.Method),
 			zap.String("remote_addr", r.RemoteAddr),
