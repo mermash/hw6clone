@@ -22,6 +22,7 @@ func (ac *AccessLogger) AccessLog(next http.Handler) http.Handler {
 		start := time.Now()
 		next.ServeHTTP(w, r)
 		ac.Logger.Info(r.URL.Path,
+			zap.String("requestID", RequestIDFromContext(r.Context())),
 			zap.String("method", r.Method),
 			zap.String("remote_addr", r.RemoteAddr),
 			zap.String("url", r.URL.Path),

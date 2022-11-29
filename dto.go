@@ -1,6 +1,8 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type AuthorDTO struct {
 	UserName string `json:"username"`

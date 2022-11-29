@@ -9,10 +9,47 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 
 	_ "github.com/go-sql-driver/mysql"
 )
+
+var (
+	timings = prometheus.NewSummaryVec(
+		prometheus.SummaryOpts{
+			Name: "method_timing",
+			Help: "Per method timing",
+		},
+		[]string{"method"},
+	)
+	counter = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "method_counter",
+			Help: "Per method counter",
+		},
+		[]string{"method"},
+	)
+)
+
+func init() {
+	prometheus.MustRegister(timings)
+	prometheus.MustRegister(counter)
+}
+
+func TimeTrackingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		next.ServeHTTP(w, r)
+		timings.
+			WithLabelValues(r.URL.Path). //TODO: fix it. don't use path from user
+			Observe(float64(time.Since(start).Seconds()))
+		counter.
+			WithLabelValues(r.URL.Path).
+			Inc()
+	})
+}
 
 func main() {
 	fmt.Println("Hello, redditclone")
@@ -60,6 +97,8 @@ func main() {
 
 	router.Handle("/", Index(templates))
 
+	router.Handle("/metrics", promhttp.Handler())
+
 	staticHandler := http.StripPrefix(
 		"/static/",
 		http.FileServer(http.Dir("./static")),
@@ -76,6 +115,10 @@ func main() {
 	defer logger.Sync()
 	acmw := NewAccessLoggerMiddleware(logger)
 	router.Use(acmw.AccessLog)
+
+	router.Use(TimeTrackingMiddleware)
+
+	router.Use(RequestIDMiddleware)
 
 	fmt.Println("starting server at :8080")
 	http.ListenAndServe(":8080", router)

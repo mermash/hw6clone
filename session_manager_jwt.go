@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"math/rand"
 	"net/http"
 	"os"
 	"strings"
@@ -14,8 +13,7 @@ import (
 )
 
 var (
-	ErrNoAuth   = errors.New("No session found")
-	letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	ErrNoAuth = errors.New("No session found")
 )
 
 type SessionsDBManagerJWT struct {
@@ -31,14 +29,6 @@ type UserJWtClaims struct {
 type SessionJWTClaims struct {
 	User UserJWtClaims `json:"user"`
 	jwt.StandardClaims
-}
-
-func RandStringRunes(n int) string {
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letterRunes[rand.Intn(len(letterRunes))]
-	}
-	return string(b)
 }
 
 func NewSessionDBManagerJWT(db *sql.DB) *SessionsDBManagerJWT {

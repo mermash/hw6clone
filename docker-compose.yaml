@@ -23,6 +23,18 @@ services:
       - 8090:80
     environment:
       - PMA_ARBITRARY=1
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - 9090:9090
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command: 
+      - '--web.enable-lifecycle'
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    depends_on:
+      - redditclone-app
   redditclone-app:
     image: mermash/redditclone-app
     build: .
@@ -40,6 +52,6 @@ services:
       - DB_USER=root
       - DB_PASSWORD=root
       - DB_DB=redditclone
-
 volumes:
   redditclone-mysql-data:
+  prometheus-data:
